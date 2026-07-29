@@ -294,7 +294,6 @@ export default function App() {
       <header className="topbar">
         <div className="brand">
           <h1>Sudoku</h1>
-          <span className="tag">no ads, no accounts, no nonsense</span>
         </div>
 
         <div className="topbar-actions">

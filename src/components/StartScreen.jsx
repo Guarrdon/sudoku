@@ -7,8 +7,8 @@ export default function StartScreen({ stats, save, onPick, onResume, onDiscard }
       <div className="hero">
         <h2>Choose your puzzle</h2>
         <p>
-          Every board is generated fresh and rated by actually solving it, so the difficulty on the
-          label is the difficulty you get. Nothing starts until you say go.
+          Every board is generated fresh and rated by solving it, so you can see what you are
+          taking on before the clock starts.
         </p>
       </div>
 
@@ -62,7 +62,7 @@ export default function StartScreen({ stats, save, onPick, onResume, onDiscard }
       </div>
 
       <p className="footer-note">
-        No ads. No accounts. No network. Your stats live in this browser and nowhere else.
+        Everything is stored in this browser. The game makes no network requests.
       </p>
     </div>
   )

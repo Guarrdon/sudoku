@@ -1,7 +1,7 @@
 {
   "name": "sudoku",
   "version": "0.1.0",
-  "description": "A calm, ad-free Sudoku for the web.",
+  "description": "Sudoku for the browser, with rated difficulty and coloured notes.",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -17,5 +17,22 @@
     "@vitejs/plugin-react": "^6.0.4",
     "vite": "^8.1.5"
   },
-  "private": true
+  "private": true,
+  "license": "MIT",
+  "author": "Matt Lyons",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Guarrdon/sudoku.git"
+  },
+  "homepage": "https://github.com/Guarrdon/sudoku#readme",
+  "bugs": {
+    "url": "https://github.com/Guarrdon/sudoku/issues"
+  },
+  "keywords": [
+    "sudoku",
+    "puzzle",
+    "game",
+    "react",
+    "vite"
+  ]
 }

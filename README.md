@@ -1,129 +1,163 @@
 # Sudoku
 
-A calm, ad-free Sudoku for the browser. No accounts, no tracking, no network calls,
-no "watch a video to continue". You open it and you play.
+Sudoku that runs entirely in your browser. Five difficulty levels, coloured pencil-mark
+notes, and a timer and statistics kept on your own device.
+
+![Five difficulties, a rated board preview, and a light-paper grid](docs/board.png)
+
+## Play it
 
 ```bash
 npm install
-npm run dev      # http://localhost:5173
-npm run build    # static output in dist/
-npm test         # engine + game-logic checks
+npm run dev
 ```
 
-## Honest difficulty
+That starts it at `http://localhost:5173`. To make a copy you can host anywhere (or keep
+in a folder and open offline):
 
-Most Sudoku apps set difficulty by counting how many clues they removed. That's a poor
-proxy — a 24-clue board can be trivial and a 30-clue board can be brutal.
+```bash
+npm run build     # writes a self-contained site to dist/
+```
 
-Here, every generated board is **solved by a model of how a person actually solves**,
-one technique at a time, cheapest first:
+## How to play
 
-| Tier | Techniques |
+Classic Sudoku: fill the grid so every row, every column and every 3×3 box contains the
+digits 1 to 9 exactly once. The dark numbers are the puzzle; the blue ones are yours.
+
+Click a square and then a number, or click a square and type. Both work everywhere.
+
+### Choosing a puzzle
+
+Pick a difficulty and you're shown the board *before* you start — its size, how many
+numbers you're given, and how hard it worked out to be. Nothing is timed until you press
+**Play this board**, so you can look at a puzzle and ask for a different one at no cost.
+
+### Notes
+
+Notes are the small digits you pencil into a square while you're working it out. All nine
+fit, and they come in three colours:
+
+- **grey** — still possible
+- **green** — this could be the answer
+- **red** — ruled out (drawn with a line through it, so it reads even if colour is hard
+  to distinguish)
+
+The quickest way is to press a digit more than once:
+
+| press `5` | you get |
 | --- | --- |
-| 0 | Naked Single, Hidden Single |
-| 1 | Pointing Pair/Triple, Box/Line Reduction, Naked Pair |
-| 2 | Hidden Pair, Naked Triple, Hidden Triple |
-| 3 | Naked Quad, X-Wing, XY-Wing |
-| 4 | Swordfish |
+| once | a large **5**, as your answer |
+| twice | a green note 5 |
+| three times | a red note 5 |
+| four times | no 5 note at all |
 
-Each technique has a cost; the total is the board's **difficulty score**, and the
-highest tier reached is its **hardest step**. A board is only offered as, say, Expert
-if it genuinely requires a tier-3 technique and scores in the Expert window. If the
-generator can't hit the band, it discards the board and tries again — typically a few
-dozen candidates, all within a few hundred milliseconds, on a worker thread.
+Each press only ever affects the digit you pressed, so notes build up: `2 2` then `5 5`
+leaves you with a green 2 *and* a green 5.
 
-Boards that can't be finished by logic alone (that would need guessing) are always
-rejected. Every puzzle has exactly one solution, verified by an independent solver.
+If you'd rather not count presses, there are dedicated modes — **Note**, **Green** and
+**Red** — on the panel beside the board, or on the keys `N`, `G` and `R`.
 
-The bands were calibrated by sampling ~1600 generated boards rather than guessed:
-see `DIFFICULTIES` in `src/lib/generator.js`.
+**Your notes are never thrown away.** Putting a number in a square only hides the notes
+underneath it, and a small corner mark shows when that's happened. Take the number away
+and every note is exactly where you left it. Erase works the same way: the first press
+lifts the number, a second clears the notes.
 
-**You see all of this before you commit.** Pick a difficulty and the board is generated
-and rated while you wait, then shown to you — score, clue count, hardest step, and the
-full list of techniques it needs. The clock does not start until you press *Play this
-board*. Don't like it? *Try another*, at no cost.
+### Checking your work
 
-## Notes, in three colours
+**Check** marks any square you've filled in that doesn't match the solution. It's free and
+you can use it as often as you like — it only counts against the "clean solve" streak in
+your statistics if it actually finds a mistake.
 
-Notes are small digits in a 3×3 arrangement inside the square; all nine fit.
+Separately, if you place a number that clashes with one already on the board, both squares
+flash red for a moment. That only ever compares against numbers already visible, so it
+never gives away an answer you haven't found.
 
-- **Grey** — still on the table
-- **Green** — this could be it
-- **Red** — ruled out (drawn struck through, so it reads without relying on colour)
+## Difficulty
 
-Three ways to set them, and they work together:
+Most Sudoku apps decide difficulty by counting how many numbers they removed. That doesn't
+tell you much — a puzzle with few clues can be straightforward, and one with plenty can be
+hard.
 
-- **Number mode** (`V`, the default) — pressing a digit places it as the answer. Pressing the
-  **same digit again** walks it down: answer → green note → red note → empty. One key covers
-  the whole thought, without changing mode.
-- **Note mode** (`N`) — pressing a digit cycles it: off → grey → green → red → off
-- **Green mode** (`G`) / **Red mode** (`R`) — pressing a digit toggles that colour directly
-
-Each step touches **only the digit you pressed**, so notes accumulate: `2 2` then `5 5`
-leaves you holding a green 2 *and* a green 5. A *different* digit replaces the answer.
-
-### Notes are never thrown away
-
-Putting a number in a square **hides** that square's notes; it does not delete them. Take
-the number away and every note is exactly where you left it. A small corner mark shows when
-a number is sitting on top of notes.
-
-Only two things remove a note:
-
-- cycling that one digit past red
-- **Erase**, which peels one layer at a time — the first press lifts the number (revealing
-  any notes beneath), the second clears the notes. So it can never destroy notes you cannot
-  currently see.
-
-Placing a number does tidy the matching *grey* note out of the row, column and box — but
-never a green or red note, since you set those deliberately. (Toggleable in Settings.)
-
-## Keys
+Here, every generated puzzle is solved by a program that works the way a person does,
+trying the simplest tactic that gets anywhere and moving up only when it has to:
 
 | | |
 | --- | --- |
-| `1`–`9` | Place a number as the answer |
-| `1`–`9` again | Same digit: answer → green note → red note → empty |
-| `Shift`+`1`–`9` | Go straight to a note without leaving Number mode |
+| **Easy** | Squares you can fill by simple elimination. Plenty of clues. |
+| **Medium** | The same tactics, fewer clues — more hunting before each answer. |
+| **Hard** | Needs pairs and locked candidates. You'll want your notes. |
+| **Expert** | Triples, quads and wings. Long chains of reasoning. |
+| **Master** | The hardest patterns the solver knows. Bring patience. |
+
+How much work that took becomes the puzzle's **score**, and the trickiest tactic it needed
+is its **hardest step** — both shown before you start, along with a full list of what the
+puzzle requires. If a generated board doesn't match the difficulty you asked for, it's
+thrown away and another is made.
+
+Puzzles that can't be finished by reasoning alone — where you'd have to guess — are never
+offered. Every puzzle has exactly one solution.
+
+## Statistics
+
+Per difficulty: how many you've solved, your best and average time, and a streak counting
+puzzles finished without ever placing a wrong number.
+
+You can switch recording off from the Stats window if you want to play without it counting
+— a marker stays in the header while it's off — and you can clear your statistics at any
+time.
+
+## Your data
+
+Everything stays in your browser. There is no server, no account, and the game makes no
+network requests at all — you can disconnect and it works exactly the same. Your times and
+statistics are stored locally, and clearing your browser data removes them.
+
+Games in progress are saved automatically, so you can close the tab and pick up where you
+left off.
+
+## Keys
+
+Everything is reachable with the mouse; these just make it faster.
+
+| | |
+| --- | --- |
+| `1`–`9` | Place a number |
+| `1`–`9` again | Same digit: answer → green note → red note → nothing |
+| `Shift`+`1`–`9` | Straight to a note, without changing mode |
 | `V` `N` `G` `R` | Number / Note / Green / Red mode |
-| `Space` | Cycle through the modes |
-| Arrows or `WASD` | Move around the board |
-| `Backspace` | Lift the number, then (pressed again) clear the notes |
-| `C` | Check for wrong squares |
+| `Space` | Step through the modes |
+| Arrow keys or `WASD` | Move around the board |
+| `Backspace` | Lift the number; again to clear the notes under it |
+| `C` | Check for mistakes |
 | `Ctrl`+`Z` / `Ctrl`+`Y` | Undo / redo |
 | `P` | Pause |
 | `?` | Help |
 
-Mouse works throughout: click a square, then click a number.
+## Building on it
 
-## The rest
-
-- **Check** marks any placed square that disagrees with the solution. Givens are never
-  editable, and a square stops being flagged the moment you change it.
-- **Conflicts** flash red briefly on both the square you placed and the ones it clashes
-  with — only against numbers already on the board, so it never leaks the solution.
-- **Timer** pauses when you pause and when you switch tabs, so your time is real.
-- **Statistics** per difficulty: solved, best, average, and a clean-solve streak that
-  counts consecutive wins with no wrong square ever placed. Checking is free; being
-  wrong is what breaks it. **Recording can be switched off** from the Stats dialog, so
-  you can poke around without polluting your record — a "Not recording" chip stays in
-  the header while it's off, and existing stats are untouched. Reset is there too.
-- **Progress is saved** as you play. Close the tab and resume from the menu.
-- Everything lives in `localStorage`. There is no server.
-
-## Layout
+Plain JavaScript and React, built with Vite. No runtime dependencies beyond React itself.
 
 ```
 src/
   lib/
-    grid.js        geometry: houses, peers, conflicts
-    solver.js      fast bitmask solver + human-technique analyser
-    generator.js   build, dig, rate, retry -> difficulty bands
-    worker.js      generation off the main thread
-    game.js        game state and reducer (no React)
-    storage.js     localStorage: stats, save, preferences
+    grid.js        rows, columns, boxes and which squares can see which
+    solver.js      a fast solver, plus the one that rates difficulty
+    generator.js   builds puzzles, measures them, retries until they fit
+    worker.js      generation, kept off the main thread
+    game.js        the rules of play, with no React in them
+    storage.js     saved games, statistics and settings
   components/      Board, SidePanel, StartScreen, Preview, Dialogs
-test/              engine + game-logic checks, no dependencies
+test/              checks for the solver, generator and rules
 ```
 
-The rules engine has no React in it and is tested directly.
+```bash
+npm test
+```
+
+Because the rules live apart from the interface, they can be tested directly — the tests
+cover puzzle generation and every input rule, including that notes survive a number being
+placed on top of them.
+
+## Licence
+
+MIT — see [LICENSE](LICENSE).

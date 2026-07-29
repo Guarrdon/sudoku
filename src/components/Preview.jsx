@@ -47,7 +47,7 @@ export default function Preview({ result, generating, attempt, difficultyId, onS
         <p>
           {result.approximate
             ? 'The closest match found — this one sits just outside the usual band.'
-            : 'Measured by solving it with human techniques. The timer starts when you do.'}
+            : 'Rated by solving it the way a person would. The timer starts when you do.'}
         </p>
       </div>
 
