@@ -11,7 +11,12 @@ export const NOTE_NO = 3 // red: ruled out
 export const NOTE_CYCLE = [NOTE_PLAIN, NOTE_YES, NOTE_NO, NOTE_OFF]
 
 export const MODES = [
-  { id: 'value', label: 'Number', key: 'V', hint: 'Type a digit to place it' },
+  {
+    id: 'value',
+    label: 'Number',
+    key: 'V',
+    hint: 'Same digit again cycles: answer → green → red → off',
+  },
   { id: 'note', label: 'Note', key: 'N', hint: 'Digit cycles grey → green → red → off' },
   { id: 'yes', label: 'Green', key: 'G', hint: 'Digit toggles a green "could be" note' },
   { id: 'no', label: 'Red', key: 'R', hint: 'Digit toggles a red "ruled out" note' },
@@ -80,13 +85,44 @@ function clearPeerNotes(notes, index, digit) {
   return next || notes
 }
 
-function placeValue(state, index, digit, prefs) {
-  if (isGiven(state, index)) return state
+/** Step of the answer->note cycle: drop the big number, leave one coloured note. */
+function setSoleNote(state, index, digit, noteState) {
   const history = pushHistory(state)
   const values = state.values.slice()
-  const previous = values[index]
-  // Pressing the digit already in the cell clears it - a natural toggle.
-  const next = previous === digit ? 0 : digit
+  values[index] = 0
+  return {
+    ...state,
+    ...history,
+    values,
+    notes: withNoteAt(state.notes, index, digit, noteState),
+    errors: state.errors.filter((e) => e !== index),
+  }
+}
+
+/**
+ * The main input action. Pressing a digit places it as the answer; pressing the
+ * SAME digit again walks it down through the note states, so one key covers the
+ * whole thought: "it's a 5" -> "might be a 5" -> "not a 5" -> "never mind".
+ *
+ *   press 5 -> big 5      press 5 -> green note 5
+ *   press 5 -> red note 5 press 5 -> empty
+ *
+ * A different digit always replaces outright, and Erase still clears in one go.
+ */
+function placeValue(state, index, digit, prefs) {
+  if (isGiven(state, index)) return state
+
+  const current = state.values[index]
+  const note = state.notes[index][digit]
+
+  // Continue the cycle rather than placing, when this digit is already showing.
+  if (current === digit) return setSoleNote(state, index, digit, NOTE_YES)
+  if (current === 0 && note === NOTE_YES) return setSoleNote(state, index, digit, NOTE_NO)
+  if (current === 0 && note === NOTE_NO) return toggleNote(state, index, digit, NOTE_NO)
+
+  const history = pushHistory(state)
+  const values = state.values.slice()
+  const next = digit
   values[index] = next
 
   // The cell's own notes give way to the big number.

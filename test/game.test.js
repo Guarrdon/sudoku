@@ -24,10 +24,27 @@ check('placement is undoable', g.past.length === 1)
 g = reducer(g, { type: 'check' })
 check('check flags the wrong square', g.errors.includes(blank) && g.mistakesFound === 1 && g.checksUsed === 1)
 
-// same digit again clears it (toggle)
+// the answer -> green -> red -> clear cycle, all on one key
 g = reducer(g, { type: 'digit', digit: wrong, prefs })
-check('re-pressing the same digit clears the square', g.values[blank] === 0)
-check('editing clears that square\'s error flag', !g.errors.includes(blank))
+check('same digit again turns the answer into a green note', g.values[blank] === 0 && g.notes[blank][wrong] === NOTE_YES)
+check('leaving the answer clears that square\'s error flag', !g.errors.includes(blank))
+g = reducer(g, { type: 'digit', digit: wrong, prefs })
+check('third press turns the green note red', g.notes[blank][wrong] === NOTE_NO)
+g = reducer(g, { type: 'digit', digit: wrong, prefs })
+check('fourth press clears the square', g.values[blank] === 0 && g.notes[blank][wrong] === NOTE_OFF)
+
+// a different digit always replaces outright rather than continuing the cycle
+g = reducer(g, { type: 'digit', digit: wrong, prefs })
+const other = wrong === 1 ? 2 : 1
+g = reducer(g, { type: 'digit', digit: other, prefs })
+check('a different digit replaces the answer outright', g.values[blank] === other)
+
+// undo unwinds the cycle one step at a time
+g = reducer(g, { type: 'undo' })
+check('undo steps back through the cycle', g.values[blank] === wrong)
+g = reducer(g, { type: 'digit', digit: wrong, prefs })
+g = reducer(g, { type: 'erase' })
+check('erase still clears in one go from mid-cycle', g.values[blank] === 0 && g.notes[blank].every((n) => n === NOTE_OFF))
 
 // givens are immutable
 let g2 = reducer(g, { type: 'select', index: givenIdx })

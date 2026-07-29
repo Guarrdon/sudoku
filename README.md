@@ -51,10 +51,15 @@ Notes are small digits in a 3×3 arrangement inside the square; all nine fit.
 - **Green** — this could be it
 - **Red** — ruled out (drawn struck through, so it reads without relying on colour)
 
-Two ways to set them, and they work together:
+Three ways to set them, and they work together:
 
+- **Number mode** (`V`, the default) — pressing a digit places it as the answer. Pressing the
+  **same digit again** walks it down: answer → green note → red note → empty. One key covers
+  the whole thought, without changing mode.
 - **Note mode** (`N`) — pressing a digit cycles it: off → grey → green → red → off
 - **Green mode** (`G`) / **Red mode** (`R`) — pressing a digit toggles that colour directly
+
+A *different* digit always replaces outright, and `Backspace` still clears in one go.
 
 Placing a real number in a square clears that square's notes. It also tidies the matching
 *grey* note out of the row, column and box — but never touches a green or red note, since
@@ -64,8 +69,9 @@ you set those deliberately. (Toggleable in Settings.)
 
 | | |
 | --- | --- |
-| `1`–`9` | Place a number, or set a note in a note mode |
-| `Shift`+`1`–`9` | Cycle a note without leaving Number mode |
+| `1`–`9` | Place a number as the answer |
+| `1`–`9` again | Same digit: answer → green note → red note → empty |
+| `Shift`+`1`–`9` | Go straight to a note without leaving Number mode |
 | `V` `N` `G` `R` | Number / Note / Green / Red mode |
 | `Space` | Cycle through the modes |
 | Arrows or `WASD` | Move around the board |
@@ -86,7 +92,9 @@ Mouse works throughout: click a square, then click a number.
 - **Timer** pauses when you pause and when you switch tabs, so your time is real.
 - **Statistics** per difficulty: solved, best, average, and a clean-solve streak that
   counts consecutive wins with no wrong square ever placed. Checking is free; being
-  wrong is what breaks it.
+  wrong is what breaks it. **Recording can be switched off** from the Stats dialog, so
+  you can poke around without polluting your record — a "Not recording" chip stays in
+  the header while it's off, and existing stats are untouched. Reset is there too.
 - **Progress is saved** as you play. Close the tab and resume from the menu.
 - Everything lives in `localStorage`. There is no server.
 

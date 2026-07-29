@@ -117,6 +117,7 @@ export const clearSave = () => {
 // ------------------------------------------------------------------- prefs
 
 export const defaultPrefs = {
+  recordStats: true, // off = play freely without touching your record
   autoClearNotes: true, // placing a digit clears matching plain notes from peers
   highlightPeers: true, // dim-highlight the row, column and box of the selection
   highlightMatches: true, // glow every cell holding the selected digit

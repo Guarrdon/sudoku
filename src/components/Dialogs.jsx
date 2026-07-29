@@ -1,4 +1,4 @@
-import { Fragment, useEffect } from 'react'
+import { Fragment, useEffect, useState } from 'react'
 import { DIFFICULTIES } from '../lib/generator.js'
 import { formatTime } from '../lib/storage.js'
 
@@ -25,9 +25,24 @@ function Overlay({ children, onClose, labelledBy }) {
 
 // ------------------------------------------------------------------- stats
 
-export function StatsDialog({ stats, onClose, onReset }) {
-  const anyPlayed = stats.totalStarted > 0
+export function StatsDialog({ stats, prefs, onChange, onClose, onReset }) {
+  const [confirming, setConfirming] = useState(false)
   const winRate = stats.totalStarted ? Math.round((stats.totalCompleted / stats.totalStarted) * 100) : 0
+
+  if (confirming) {
+    return (
+      <ConfirmDialog
+        title="Erase all statistics?"
+        body="Every solve, best time and streak on this browser will be cleared. This cannot be undone."
+        confirmLabel="Erase everything"
+        onConfirm={() => {
+          onReset()
+          setConfirming(false)
+        }}
+        onClose={() => setConfirming(false)}
+      />
+    )
+  }
 
   return (
     <Overlay onClose={onClose} labelledBy="stats-title">
@@ -86,18 +101,28 @@ export function StatsDialog({ stats, onClose, onReset }) {
         board is free; being wrong is what breaks it.
       </p>
 
+      <div className="toggle-row" style={{ marginTop: 12, borderTop: '1px solid var(--rule)' }}>
+        <div>
+          <div className="t-label">Record statistics</div>
+          <div className="t-desc">
+            Off means nothing you play is counted — handy while poking around. Your existing
+            statistics stay put.
+          </div>
+        </div>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={prefs.recordStats}
+          aria-label="Record statistics"
+          className={`switch${prefs.recordStats ? ' on' : ''}`}
+          onClick={() => onChange({ ...prefs, recordStats: !prefs.recordStats })}
+        />
+      </div>
+
       <div className="dialog-actions">
-        {anyPlayed && (
-          <button
-            type="button"
-            className="btn ghost"
-            onClick={() => {
-              if (confirm('Erase all statistics? This cannot be undone.')) onReset()
-            }}
-          >
-            Reset statistics
-          </button>
-        )}
+        <button type="button" className="btn ghost" onClick={() => setConfirming(true)}>
+          Reset statistics
+        </button>
         <button type="button" className="btn primary" onClick={onClose}>
           Close
         </button>
@@ -109,8 +134,9 @@ export function StatsDialog({ stats, onClose, onReset }) {
 // -------------------------------------------------------------------- help
 
 const KEYS = [
-  [['1', '–', '9'], 'Place a number, or set a note in note modes'],
-  [['Shift', '+', '1–9'], 'Cycle a note without leaving Number mode'],
+  [['1', '–', '9'], 'Place a number as the answer'],
+  [['1', '–', '9'], 'Same digit again: answer → green note → red note → empty'],
+  [['Shift', '+', '1–9'], 'Go straight to a note without leaving Number mode'],
   [['V'], 'Number mode'],
   [['N'], 'Note mode — grey → green → red → off'],
   [['G'], 'Green mode — toggle a "could be" note'],
@@ -159,6 +185,7 @@ export function HelpDialog({ onClose }) {
 // ---------------------------------------------------------------- settings
 
 const TOGGLES = [
+  ['recordStats', 'Record statistics', 'Turn this off to play without adding anything to your record — no games counted, no times, no streaks. Existing statistics are kept.'],
   ['autoClearNotes', 'Tidy notes automatically', 'Placing a number removes that grey note from the row, column and box. Green and red notes are left alone.'],
   ['highlightPeers', 'Highlight row, column and box', 'Shades everything the selected square can see.'],
   ['highlightMatches', 'Highlight matching numbers', 'Every square holding the same number as the selection.'],

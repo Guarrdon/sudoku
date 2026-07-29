@@ -81,32 +81,35 @@ export default function App() {
     setElapsed(0)
     setPaused(false)
     setScreen('play')
+    if (!prefs.recordStats) return
     setStats((s) => {
       const next = recordStart(s, gen.result.difficulty)
       saveStats(next)
       return next
     })
-  }, [gen.result])
+  }, [gen.result, prefs.recordStats])
 
   useEffect(() => {
     if (screen !== 'play' || !game || game.solvedAt) return
     if (!isSolved(game)) return
     dispatch({ type: 'solved', at: Date.now() })
-    setStats((s) => {
-      const next = recordFinish(s, {
-        difficulty: game.meta.difficulty,
-        seconds: elapsed,
-        score: game.meta.score,
-        checks: game.checksUsed,
-        mistakes: game.mistakesFound,
+    if (prefs.recordStats) {
+      setStats((s) => {
+        const next = recordFinish(s, {
+          difficulty: game.meta.difficulty,
+          seconds: elapsed,
+          score: game.meta.score,
+          checks: game.checksUsed,
+          mistakes: game.mistakesFound,
+        })
+        saveStats(next)
+        return next
       })
-      saveStats(next)
-      return next
-    })
+    }
     clearSave()
     setSavedGame(null)
     setTimeout(() => setDialog('win'), 900) // let the board finish its flourish
-  }, [screen, game, elapsed])
+  }, [screen, game, elapsed, prefs.recordStats])
 
   // --------------------------------------------------------------- persist
   useEffect(() => {
@@ -148,7 +151,7 @@ export default function App() {
   }, [savedGame])
 
   const abandonToMenu = useCallback(() => {
-    if (game && !game.solvedAt) {
+    if (game && !game.solvedAt && prefs.recordStats) {
       setStats((s) => {
         const next = recordAbandon(s, game.meta.difficulty)
         saveStats(next)
@@ -158,7 +161,7 @@ export default function App() {
     setDialog(null)
     setScreen('menu')
     setSavedGame(loadSave())
-  }, [game])
+  }, [game, prefs.recordStats])
 
   // -------------------------------------------------------------- gameplay
   const act = useCallback(
@@ -311,6 +314,12 @@ export default function App() {
               )}
             </>
           )}
+          {!prefs.recordStats && (
+            <span className="chip muted" title="Nothing you play is being added to your statistics">
+              <span className="dot" />
+              Not recording
+            </span>
+          )}
           <button type="button" className="btn ghost small" onClick={() => setDialog('stats')}>
             Stats
           </button>
@@ -394,6 +403,8 @@ export default function App() {
       {dialog === 'stats' && (
         <StatsDialog
           stats={stats}
+          prefs={prefs}
+          onChange={updatePrefs}
           onClose={() => setDialog(null)}
           onReset={() => setStats(resetStats())}
         />

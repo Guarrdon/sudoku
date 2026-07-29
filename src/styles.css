@@ -201,6 +201,15 @@ button {
   background: var(--accent);
 }
 
+.chip.muted {
+  background: rgba(250, 246, 236, 0.7);
+  border-style: dashed;
+}
+
+.chip.muted .dot {
+  background: var(--ink-faint);
+}
+
 .timer {
   font-family: var(--font-num);
   font-size: 21px;
@@ -256,13 +265,22 @@ button {
   display: flex;
   justify-content: center;
   perspective: 1400px;
+  /* Must span the column: a shrink-to-fit wrapper would make 100cqw circular. */
+  width: 100%;
+  /* Cells are sized from THIS box, not the viewport, so the board can never
+     grow wider than the column it lives in and slide under the side panel. */
+  container-type: inline-size;
+  min-width: 0;
 }
 
 .board {
-  --cell: clamp(34px, min(8.6vw, 9.4vh), 68px);
+  /* 34px covers the chrome around the nine tracks: board padding (14), board
+     border (2), grid border (6), eight 1px gaps, two 1px separator margins. */
+  --cell: clamp(30px, min(calc((100cqw - 34px) / 9), 9.2vh), 68px);
   /* Sized by its contents, never by arithmetic - the gaps, block-separator
      margins and border all have to fit, or the ninth column gets clipped. */
   width: fit-content;
+  flex-shrink: 0;
   padding: 7px;
   background: var(--board);
   border-radius: var(--r-xl);
@@ -1153,13 +1171,13 @@ kbd {
 @media (max-width: 900px) {
   .play-area {
     grid-template-columns: minmax(0, 1fr);
-    justify-items: center;
   }
 
   .side {
     position: static;
     width: 100%;
     max-width: 420px;
+    margin: 0 auto;
   }
 
   .pad {
@@ -1170,6 +1188,7 @@ kbd {
   .key {
     font-size: 20px;
     border-radius: var(--r-sm);
+    min-width: 0; /* let the nine tracks shrink below their glyph width */
   }
 
   .key .left {
@@ -1201,10 +1220,6 @@ kbd {
 
   .brand h1 {
     font-size: 24px;
-  }
-
-  .board {
-    --cell: min(9.1vw, 44px);
   }
 
   .summary {
