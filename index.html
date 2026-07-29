@@ -15,5 +15,9 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
+    <!-- The way back to the portal. Served from the portal's origin, so this
+         is a no-op on a local dev server. Escape stays ours - it closes the
+         dialogs. -->
+    <script src="/shared/exit-to-portal.js" defer></script>
   </body>
 </html>
