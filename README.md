@@ -3,7 +3,7 @@
 Sudoku that runs entirely in your browser. Five difficulty levels, coloured pencil-mark
 notes, and a timer and statistics kept on your own device.
 
-![Five difficulties, a rated board preview, and a light-paper grid](docs/board.png)
+![An Expert puzzle part-solved: coloured notes, and a hint explaining the XY-Wing that unlocks the next number](docs/board.png)
 
 ## Play it
 
@@ -28,8 +28,9 @@ Click a square and then a number, or click a square and type. Both work everywhe
 
 ### Choosing a puzzle
 
-Pick a difficulty and you're shown the board *before* you start — its size, how many
-numbers you're given, and how hard it worked out to be. Nothing is timed until you press
+Pick a difficulty and you're shown the board *before* you start — its measured difficulty
+score, how many numbers you're given, and the hardest tactic it needs. Nothing is timed
+until you press
 **Play this board**, so you can look at a puzzle and ask for a different one at no cost.
 
 ### Notes
@@ -179,17 +180,19 @@ src/
     game.js        the rules of play, with no React in them
     hint.js        finds the next move and explains it in stages
     storage.js     saved games, statistics and settings
-  components/      Board, SidePanel, StartScreen, Preview, Dialogs
-test/              checks for the solver, generator and rules
+  components/      Board, SidePanel, HintBar, StartScreen, Preview, Dialogs
+test/              checks for the solver, generator, rules and hints
 ```
 
 ```bash
 npm test
 ```
 
-Because the rules live apart from the interface, they can be tested directly — the tests
-cover puzzle generation and every input rule, including that notes survive a number being
-placed on top of them.
+Because the rules live apart from the interface, they can be tested directly. The tests
+cover puzzle generation and rating, every input rule (including that notes survive a
+number being placed on top of them), and the hint engine — which they check by solving a
+puzzle of each difficulty using nothing but hints, verifying every suggested move against
+the real solution.
 
 ## Licence
 
