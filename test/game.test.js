@@ -1,4 +1,4 @@
-import { createGame, reducer, isSolved, remainingCounts, NOTE_OFF, NOTE_PLAIN, NOTE_YES, NOTE_NO } from '../src/lib/game.js'
+import { createGame, reducer, isSolved, remainingCounts, hasUserAnswers, hasAnyNotes, NOTE_OFF, NOTE_PLAIN, NOTE_YES, NOTE_NO } from '../src/lib/game.js'
 import { generatePuzzle } from '../src/lib/generator.js'
 import { PEERS } from '../src/lib/grid.js'
 
@@ -106,6 +106,62 @@ gm = reducer(gm, { type: 'digit', digit: 5, prefs })          // green 5 -> red 
 gm = reducer(gm, { type: 'digit', digit: 5, prefs })          // red 5 -> off
 check('cycling past red clears only that digit', gm.notes[blank][5] === NOTE_OFF && gm.notes[blank][2] === NOTE_YES && gm.notes[blank][7] === NOTE_YES)
 check('the other notes are untouched by that clear', gm.values[blank] === 0)
+
+// --- the two resets -------------------------------------------------------
+const buildMessyBoard = () => {
+  let s = createGame(data)
+  const blanks = data.puzzle.map((v, i) => (v ? null : i)).filter((i) => i !== null)
+  // three answers
+  for (const i of blanks.slice(0, 3)) {
+    s = reducer(s, { type: 'select', index: i })
+    s = reducer(s, { type: 'digit', digit: data.solution[i], prefs })
+  }
+  // notes on three other squares
+  s = reducer(s, { type: 'mode', mode: 'note' })
+  for (const i of blanks.slice(3, 6)) {
+    s = reducer(s, { type: 'select', index: i })
+    for (const d of [1, 5, 9]) s = reducer(s, { type: 'digit', digit: d, prefs })
+  }
+  // and one square with a note hidden underneath an answer
+  s = reducer(s, { type: 'select', index: blanks[6] })
+  for (const d of [2, 4]) s = reducer(s, { type: 'digit', digit: d, prefs })
+  s = reducer(s, { type: 'mode', mode: 'value' })
+  s = reducer(s, { type: 'digit', digit: 7, prefs })
+  return { s, blanks }
+}
+
+{
+  const { s: messy } = buildMessyBoard()
+  check('test board really is messy', hasUserAnswers(messy) && hasAnyNotes(messy))
+
+  // clear answers only
+  const cleared = reducer(messy, { type: 'clearAnswers' })
+  check('clear answers removes every answer', !hasUserAnswers(cleared))
+  check('clear answers keeps the notes', hasAnyNotes(cleared))
+  check('clear answers leaves the givens alone', cleared.values.every((v, i) => v === data.puzzle[i]))
+  check('clear answers is undoable', reducer(cleared, { type: 'undo' }).values.join() === messy.values.join())
+
+  // notes that were hidden under an answer come back, not lost
+  const hiddenIdx = messy.notes.findIndex((cell, i) => messy.values[i] && cell.some((n) => n !== NOTE_OFF))
+  check('a note hidden under an answer survives the answer reset', hiddenIdx >= 0 && cleared.notes[hiddenIdx].some((n) => n !== NOTE_OFF))
+
+  // clear everything
+  const wiped = reducer(messy, { type: 'clearAll' })
+  check('clear all removes every answer', !hasUserAnswers(wiped))
+  check('clear all removes every note', !hasAnyNotes(wiped))
+  check('clear all leaves the givens alone', wiped.values.every((v, i) => v === data.puzzle[i]))
+  check('clear all is undoable', reducer(wiped, { type: 'undo' }).notes.flat().join() === messy.notes.flat().join())
+
+  // resets clear any outstanding mistake flags but keep the session's counters
+  const checkedFirst = reducer(messy, { type: 'check' })
+  const afterReset = reducer(checkedFirst, { type: 'clearAll' })
+  check('resets clear error highlighting', afterReset.errors.length === 0)
+  check('resets keep the check/mistake tally for the session', afterReset.checksUsed === checkedFirst.checksUsed)
+
+  // a finished puzzle cannot be reset out from under you
+  const solvedState = { ...messy, solvedAt: Date.now() }
+  check('a solved board ignores reset', reducer(solvedState, { type: 'clearAll' }) === solvedState)
+}
 
 // auto-clear only touches plain notes on peers, never green/red
 const peer = PEERS[blank].find((p) => !data.puzzle[p] && p !== blank)

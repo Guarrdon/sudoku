@@ -194,6 +194,12 @@ export function isSolved(state) {
   return true
 }
 
+/** Has the player written any numbers of their own? (Givens don't count.) */
+export const hasUserAnswers = (state) => state.values.some((v, i) => v && !state.givens[i])
+
+/** Are there any notes anywhere, including ones hidden under a number? */
+export const hasAnyNotes = (state) => state.notes.some((cell) => cell.some((n) => n !== NOTE_OFF))
+
 export function remainingCounts(state) {
   const counts = new Array(10).fill(9)
   for (let i = 0; i < CELLS; i++) if (state.values[i]) counts[state.values[i]]--
@@ -249,6 +255,31 @@ export function reducer(state, action) {
 
     case 'clearErrors':
       return { ...state, errors: [] }
+
+    // Both resets go through the history, so a mis-click is one Undo away.
+    // Neither can touch the givens: the board resets to exactly the puzzle.
+    case 'clearAnswers': {
+      if (state.solvedAt) return state
+      return {
+        ...state,
+        ...pushHistory(state),
+        values: state.givens.slice(),
+        errors: [],
+        flash: null,
+      }
+    }
+
+    case 'clearAll': {
+      if (state.solvedAt) return state
+      return {
+        ...state,
+        ...pushHistory(state),
+        values: state.givens.slice(),
+        notes: emptyNotes(),
+        errors: [],
+        flash: null,
+      }
+    }
 
     case 'clearFlash':
       return state.flash?.token === action.token ? { ...state, flash: null } : state

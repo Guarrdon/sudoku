@@ -1,5 +1,6 @@
 import { Fragment, useEffect, useState } from 'react'
 import { DIFFICULTIES } from '../lib/generator.js'
+import { hasAnyNotes, hasUserAnswers } from '../lib/game.js'
 import { formatTime } from '../lib/storage.js'
 
 function Overlay({ children, onClose, labelledBy }) {
@@ -145,7 +146,7 @@ const KEYS = [
   [['←', '↑', '↓', '→'], 'Move around the board'],
   [['Backspace'], 'Lift the number; press again to clear the notes under it'],
   [['C'], 'Check for wrong squares'],
-  [['Ctrl', '+', 'Z'], 'Undo'],
+  [['Ctrl', '+', 'Z'], 'Undo — including undoing a Start over'],
   [['Ctrl', '+', 'Y'], 'Redo'],
   [['P'], 'Pause'],
   [['?'], 'This help'],
@@ -278,6 +279,59 @@ export function WinDialog({ game, seconds, stats, onNewGame, onClose }) {
             New puzzle
           </button>
         </div>
+      </div>
+    </Overlay>
+  )
+}
+
+// ------------------------------------------------------------------- reset
+
+export function ResetDialog({ game, onClearAnswers, onClearAll, onClose }) {
+  const answers = hasUserAnswers(game)
+  const notes = hasAnyNotes(game)
+  const filled = game.values.filter((v, i) => v && !game.givens[i]).length
+
+  return (
+    <Overlay onClose={onClose} labelledBy="reset-title">
+      <h2 id="reset-title">Start this puzzle over</h2>
+      <p className="sub">
+        The puzzle itself stays the same — only your own work is cleared. Your time keeps
+        running.
+      </p>
+
+      <div className="choice-list">
+        <button type="button" className="choice" onClick={onClearAnswers} disabled={!answers}>
+          <div className="c-title">Clear my answers</div>
+          <div className="c-desc">
+            {answers
+              ? `Removes the ${filled} number${filled === 1 ? '' : 's'} you have written in, and keeps every note.`
+              : 'You have not written in any numbers yet.'}
+          </div>
+        </button>
+
+        <button
+          type="button"
+          className="choice danger"
+          onClick={onClearAll}
+          disabled={!answers && !notes}
+        >
+          <div className="c-title">Clear my answers and notes</div>
+          <div className="c-desc">
+            {answers || notes
+              ? 'Back to the puzzle exactly as it was given to you. Notes hidden under numbers go too.'
+              : 'There is nothing to clear.'}
+          </div>
+        </button>
+      </div>
+
+      <p className="footer-note" style={{ textAlign: 'left', marginTop: 14 }}>
+        Changed your mind? Either one can be undone with <kbd>Ctrl</kbd>+<kbd>Z</kbd>.
+      </p>
+
+      <div className="dialog-actions">
+        <button type="button" className="btn primary" onClick={onClose}>
+          Cancel
+        </button>
       </div>
     </Overlay>
   )

@@ -3,7 +3,14 @@ import Board from './components/Board.jsx'
 import SidePanel from './components/SidePanel.jsx'
 import StartScreen from './components/StartScreen.jsx'
 import Preview from './components/Preview.jsx'
-import { ConfirmDialog, HelpDialog, SettingsDialog, StatsDialog, WinDialog } from './components/Dialogs.jsx'
+import {
+  ConfirmDialog,
+  HelpDialog,
+  ResetDialog,
+  SettingsDialog,
+  StatsDialog,
+  WinDialog,
+} from './components/Dialogs.jsx'
 import { createGame, isSolved, reducer, MODES } from './lib/game.js'
 import { difficultyById } from './lib/generator.js'
 import {
@@ -388,6 +395,7 @@ export default function App() {
             onCheck={() => act({ type: 'check' })}
             onUndo={() => act({ type: 'undo' })}
             onRedo={() => act({ type: 'redo' })}
+            onReset={() => setDialog('reset')}
           />
         </div>
       )}
@@ -418,6 +426,20 @@ export default function App() {
           seconds={elapsed}
           stats={stats}
           onNewGame={abandonToMenu}
+          onClose={() => setDialog(null)}
+        />
+      )}
+      {dialog === 'reset' && game && (
+        <ResetDialog
+          game={game}
+          onClearAnswers={() => {
+            act({ type: 'clearAnswers' })
+            setDialog(null)
+          }}
+          onClearAll={() => {
+            act({ type: 'clearAll' })
+            setDialog(null)
+          }}
           onClose={() => setDialog(null)}
         />
       )}

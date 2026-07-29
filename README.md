@@ -97,6 +97,17 @@ thrown away and another is made.
 Puzzles that can't be finished by reasoning alone — where you'd have to guess — are never
 offered. Every puzzle has exactly one solution.
 
+### Starting over
+
+**Start over**, beside the board, offers two choices:
+
+- **Clear my answers** — removes the numbers you've written in and keeps every note,
+  including notes hidden under a number
+- **Clear my answers and notes** — back to the puzzle exactly as you were given it
+
+Neither touches the puzzle's own numbers, the timer keeps running, and either can be
+undone with `Ctrl`+`Z`.
+
 ## Statistics
 
 Per difficulty: how many you've solved, your best and average time, and a streak counting

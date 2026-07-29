@@ -1,5 +1,5 @@
 import { memo } from 'react'
-import { MODES, remainingCounts } from '../lib/game.js'
+import { MODES, hasAnyNotes, hasUserAnswers, remainingCounts } from '../lib/game.js'
 
 const SWATCH = { yes: 'var(--yes)', no: 'var(--no)' }
 
@@ -30,7 +30,7 @@ export function ModeSwitch({ mode, onMode }) {
   )
 }
 
-export function Keypad({ game, mode, disabled, onDigit, onErase, onCheck, onUndo, onRedo }) {
+export function Keypad({ game, mode, disabled, onDigit, onErase, onCheck, onUndo, onRedo, onReset }) {
   const left = remainingCounts(game)
   return (
     <div className="panel">
@@ -68,6 +68,14 @@ export function Keypad({ game, mode, disabled, onDigit, onErase, onCheck, onUndo
         </button>
         <button type="button" className="btn" onClick={onCheck} disabled={disabled}>
           ✓ Check
+        </button>
+        <button
+          type="button"
+          className="btn wide"
+          onClick={onReset}
+          disabled={disabled || (!hasUserAnswers(game) && !hasAnyNotes(game))}
+        >
+          ↺ Start over
         </button>
       </div>
     </div>
