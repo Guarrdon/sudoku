@@ -31,7 +31,7 @@ check('leaving the answer clears that square\'s error flag', !g.errors.includes(
 g = reducer(g, { type: 'digit', digit: wrong, prefs })
 check('third press turns the green note red', g.notes[blank][wrong] === NOTE_NO)
 g = reducer(g, { type: 'digit', digit: wrong, prefs })
-check('fourth press clears the square', g.values[blank] === 0 && g.notes[blank][wrong] === NOTE_OFF)
+check('fourth press clears that digit\'s note', g.values[blank] === 0 && g.notes[blank][wrong] === NOTE_OFF)
 
 // a different digit always replaces outright rather than continuing the cycle
 g = reducer(g, { type: 'digit', digit: wrong, prefs })
@@ -44,7 +44,7 @@ g = reducer(g, { type: 'undo' })
 check('undo steps back through the cycle', g.values[blank] === wrong)
 g = reducer(g, { type: 'digit', digit: wrong, prefs })
 g = reducer(g, { type: 'erase' })
-check('erase still clears in one go from mid-cycle', g.values[blank] === 0 && g.notes[blank].every((n) => n === NOTE_OFF))
+check('erase clears a square holding only notes', g.values[blank] === 0 && g.notes[blank].every((n) => n === NOTE_OFF))
 
 // givens are immutable
 let g2 = reducer(g, { type: 'select', index: givenIdx })
@@ -74,10 +74,38 @@ g = reducer(g, { type: 'mode', mode: 'yes' })
 g = reducer(g, { type: 'digit', digit: 7, prefs })
 check('green overwrites red on the same digit', g.notes[blank][7] === NOTE_YES)
 
-// placing a value wipes that cell's notes
+// a placed number hides the notes underneath it, it does not destroy them
 g = reducer(g, { type: 'mode', mode: 'value' })
-g = reducer(g, { type: 'digit', digit: correct, prefs })
-check('placing a number clears that square\'s notes', g.notes[blank].every((n) => n === NOTE_OFF))
+
+let gh = createGame(data)
+gh = reducer(gh, { type: 'select', index: blank })
+gh = reducer(gh, { type: 'mode', mode: 'note' })
+gh = reducer(gh, { type: 'digit', digit: 6, prefs })          // grey note 6
+gh = reducer(gh, { type: 'mode', mode: 'value' })
+gh = reducer(gh, { type: 'digit', digit: 3, prefs })          // big 3 on top
+check('a number hides notes but keeps them', gh.values[blank] === 3 && gh.notes[blank][6] === NOTE_PLAIN)
+gh = reducer(gh, { type: 'erase' })
+check('removing the number brings the notes back', gh.values[blank] === 0 && gh.notes[blank][6] === NOTE_PLAIN)
+gh = reducer(gh, { type: 'erase' })
+check('a second erase clears the notes', gh.notes[blank].every((n) => n === NOTE_OFF))
+
+// the reported bug: 2,2 then 5,5 must leave BOTH green notes
+let gm = createGame(data)
+gm = reducer(gm, { type: 'select', index: blank })
+gm = reducer(gm, { type: 'digit', digit: 2, prefs })
+gm = reducer(gm, { type: 'digit', digit: 2, prefs })          // green 2
+gm = reducer(gm, { type: 'digit', digit: 5, prefs })
+gm = reducer(gm, { type: 'digit', digit: 5, prefs })          // green 5
+check('2,2 then 5,5 keeps BOTH green notes', gm.notes[blank][2] === NOTE_YES && gm.notes[blank][5] === NOTE_YES, `2=${gm.notes[blank][2]} 5=${gm.notes[blank][5]}`)
+gm = reducer(gm, { type: 'digit', digit: 7, prefs })
+gm = reducer(gm, { type: 'digit', digit: 7, prefs })          // green 7
+check('a third digit joins them rather than replacing', [2, 5, 7].every((d) => gm.notes[blank][d] === NOTE_YES))
+
+// cycling one digit past red clears ONLY that digit
+gm = reducer(gm, { type: 'digit', digit: 5, prefs })          // green 5 -> red 5
+gm = reducer(gm, { type: 'digit', digit: 5, prefs })          // red 5 -> off
+check('cycling past red clears only that digit', gm.notes[blank][5] === NOTE_OFF && gm.notes[blank][2] === NOTE_YES && gm.notes[blank][7] === NOTE_YES)
+check('the other notes are untouched by that clear', gm.values[blank] === 0)
 
 // auto-clear only touches plain notes on peers, never green/red
 const peer = PEERS[blank].find((p) => !data.puzzle[p] && p !== blank)

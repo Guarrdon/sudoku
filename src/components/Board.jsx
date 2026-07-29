@@ -30,7 +30,10 @@ const Cell = memo(function Cell({
   if (justPlaced) cls.push('just-placed')
   if (solved) cls.push('solved-cell')
 
-  const hasNotes = !value && notes.some((n) => n !== NOTE_OFF)
+  const anyNotes = notes.some((n) => n !== NOTE_OFF)
+  const hasNotes = !value && anyNotes
+  // A number hides notes rather than deleting them; this corner mark says so.
+  const notesBeneath = !!value && anyNotes
 
   return (
     <button
@@ -42,7 +45,10 @@ const Cell = memo(function Cell({
       style={solved ? { animationDelay: `${(r + c) * 26}ms` } : undefined}
     >
       {value ? (
-        <span className="val">{value}</span>
+        <>
+          <span className="val">{value}</span>
+          {notesBeneath && <span className="notes-beneath" aria-hidden="true" />}
+        </>
       ) : hasNotes ? (
         <span className="notes">
           {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((d) => (

@@ -59,11 +59,24 @@ Three ways to set them, and they work together:
 - **Note mode** (`N`) — pressing a digit cycles it: off → grey → green → red → off
 - **Green mode** (`G`) / **Red mode** (`R`) — pressing a digit toggles that colour directly
 
-A *different* digit always replaces outright, and `Backspace` still clears in one go.
+Each step touches **only the digit you pressed**, so notes accumulate: `2 2` then `5 5`
+leaves you holding a green 2 *and* a green 5. A *different* digit replaces the answer.
 
-Placing a real number in a square clears that square's notes. It also tidies the matching
-*grey* note out of the row, column and box — but never touches a green or red note, since
-you set those deliberately. (Toggleable in Settings.)
+### Notes are never thrown away
+
+Putting a number in a square **hides** that square's notes; it does not delete them. Take
+the number away and every note is exactly where you left it. A small corner mark shows when
+a number is sitting on top of notes.
+
+Only two things remove a note:
+
+- cycling that one digit past red
+- **Erase**, which peels one layer at a time — the first press lifts the number (revealing
+  any notes beneath), the second clears the notes. So it can never destroy notes you cannot
+  currently see.
+
+Placing a number does tidy the matching *grey* note out of the row, column and box — but
+never a green or red note, since you set those deliberately. (Toggleable in Settings.)
 
 ## Keys
 
@@ -75,7 +88,7 @@ you set those deliberately. (Toggleable in Settings.)
 | `V` `N` `G` `R` | Number / Note / Green / Red mode |
 | `Space` | Cycle through the modes |
 | Arrows or `WASD` | Move around the board |
-| `Backspace` | Clear the square |
+| `Backspace` | Lift the number, then (pressed again) clear the notes |
 | `C` | Check for wrong squares |
 | `Ctrl`+`Z` / `Ctrl`+`Y` | Undo / redo |
 | `P` | Pause |

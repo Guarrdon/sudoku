@@ -143,7 +143,7 @@ const KEYS = [
   [['R'], 'Red mode — toggle a "ruled out" note'],
   [['Space'], 'Cycle through the four modes'],
   [['←', '↑', '↓', '→'], 'Move around the board'],
-  [['Backspace'], 'Clear the square'],
+  [['Backspace'], 'Lift the number; press again to clear the notes under it'],
   [['C'], 'Check for wrong squares'],
   [['Ctrl', '+', 'Z'], 'Undo'],
   [['Ctrl', '+', 'Y'], 'Redo'],
@@ -157,7 +157,8 @@ export function HelpDialog({ onClose }) {
       <h2 id="help-title">How to play</h2>
       <p className="sub">
         Click a square, then a number — or just type. Notes come in three colours: grey for
-        undecided, green for “this could be it”, red for “ruled out”.
+        undecided, green for “this could be it”, red for “ruled out”. A number only ever hides
+        the notes beneath it — they come straight back when you lift it.
       </p>
 
       <div className="keymap">

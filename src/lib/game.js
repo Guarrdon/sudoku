@@ -85,8 +85,9 @@ function clearPeerNotes(notes, index, digit) {
   return next || notes
 }
 
-/** Step of the answer->note cycle: drop the big number, leave one coloured note. */
-function setSoleNote(state, index, digit, noteState) {
+/** A step of the answer->note cycle: drop the big number, colour this one note.
+ *  Notes on every other digit are carried through untouched. */
+function stepDownToNote(state, index, digit, noteState) {
   const history = pushHistory(state)
   const values = state.values.slice()
   values[index] = 0
@@ -101,13 +102,15 @@ function setSoleNote(state, index, digit, noteState) {
 
 /**
  * The main input action. Pressing a digit places it as the answer; pressing the
- * SAME digit again walks it down through the note states, so one key covers the
- * whole thought: "it's a 5" -> "might be a 5" -> "not a 5" -> "never mind".
+ * SAME digit again walks that digit down through the note states, so one key
+ * covers the whole thought: "it's a 5" -> "might be a 5" -> "not a 5" -> "drop it".
  *
  *   press 5 -> big 5      press 5 -> green note 5
- *   press 5 -> red note 5 press 5 -> empty
+ *   press 5 -> red note 5 press 5 -> no 5 note
  *
- * A different digit always replaces outright, and Erase still clears in one go.
+ * Every step touches ONLY the digit you pressed. Notes on other digits are never
+ * disturbed, so 2,2 then 5,5 leaves you holding a green 2 and a green 5. A
+ * different digit replaces the answer, and Erase is the one way to empty a square.
  */
 function placeValue(state, index, digit, prefs) {
   if (isGiven(state, index)) return state
@@ -116,8 +119,8 @@ function placeValue(state, index, digit, prefs) {
   const note = state.notes[index][digit]
 
   // Continue the cycle rather than placing, when this digit is already showing.
-  if (current === digit) return setSoleNote(state, index, digit, NOTE_YES)
-  if (current === 0 && note === NOTE_YES) return setSoleNote(state, index, digit, NOTE_NO)
+  if (current === digit) return stepDownToNote(state, index, digit, NOTE_YES)
+  if (current === 0 && note === NOTE_YES) return stepDownToNote(state, index, digit, NOTE_NO)
   if (current === 0 && note === NOTE_NO) return toggleNote(state, index, digit, NOTE_NO)
 
   const history = pushHistory(state)
@@ -125,12 +128,10 @@ function placeValue(state, index, digit, prefs) {
   const next = digit
   values[index] = next
 
-  // The cell's own notes give way to the big number.
+  // The big number hides this square's notes, it does NOT destroy them. Take the
+  // number away again and every note you made is still there. The only things
+  // that remove a note are cycling that one digit past red, and Erase.
   let notes = state.notes
-  if (next && notes[index].some((n) => n !== NOTE_OFF)) {
-    notes = notes.slice()
-    notes[index] = new Array(10).fill(NOTE_OFF)
-  }
   if (next && prefs.autoClearNotes) notes = clearPeerNotes(notes, index, next)
 
   // A cell that changed is no longer known-wrong.
@@ -162,17 +163,30 @@ function cycleNote(state, index, digit) {
   return { ...state, ...history, notes: withNoteAt(state.notes, index, digit, next) }
 }
 
+/**
+ * Erase takes off one layer at a time, so it can never destroy notes you cannot
+ * currently see. With a number in the square, the first press removes the number
+ * and any hidden notes reappear; a second press clears those. A square holding
+ * only a number, or only notes, empties in a single press either way.
+ */
 function erase(state, index) {
   if (isGiven(state, index)) return state
   const hasValue = state.values[index] !== 0
   const hasNotes = state.notes[index].some((n) => n !== NOTE_OFF)
   if (!hasValue && !hasNotes) return state
+
   const history = pushHistory(state)
-  const values = state.values.slice()
-  values[index] = 0
+  const errors = state.errors.filter((e) => e !== index)
+
+  if (hasValue) {
+    const values = state.values.slice()
+    values[index] = 0
+    return { ...state, ...history, values, errors }
+  }
+
   const notes = state.notes.slice()
   notes[index] = new Array(10).fill(NOTE_OFF)
-  return { ...state, ...history, values, notes, errors: state.errors.filter((e) => e !== index) }
+  return { ...state, ...history, notes, errors }
 }
 
 export function isSolved(state) {

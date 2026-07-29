@@ -441,6 +441,20 @@ button {
   }
 }
 
+/* A number is covering notes that are still there. Deliberately quiet - it is a
+   reassurance, not information you have to read. */
+.notes-beneath {
+  position: absolute;
+  left: 4px;
+  bottom: 4px;
+  width: 0;
+  height: 0;
+  border-left: 5px solid var(--ink-faint);
+  border-top: 5px solid transparent;
+  opacity: 0.4;
+  border-radius: 1px;
+}
+
 /* -------------------------------------------------------------------- notes */
 .notes {
   position: absolute;
