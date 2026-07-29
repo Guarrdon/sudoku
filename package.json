@@ -1,0 +1,21 @@
+{
+  "name": "sudoku",
+  "version": "0.1.0",
+  "description": "A calm, ad-free Sudoku for the web.",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "node test/engine.test.js && node test/game.test.js"
+  },
+  "type": "module",
+  "dependencies": {
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^6.0.4",
+    "vite": "^8.1.5"
+  },
+  "private": true
+}

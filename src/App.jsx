@@ -1,0 +1,425 @@
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react'
+import Board from './components/Board.jsx'
+import SidePanel from './components/SidePanel.jsx'
+import StartScreen from './components/StartScreen.jsx'
+import Preview from './components/Preview.jsx'
+import { ConfirmDialog, HelpDialog, SettingsDialog, StatsDialog, WinDialog } from './components/Dialogs.jsx'
+import { createGame, isSolved, reducer, MODES } from './lib/game.js'
+import { difficultyById } from './lib/generator.js'
+import {
+  clearSave,
+  formatTime,
+  loadPrefs,
+  loadSave,
+  loadStats,
+  recordAbandon,
+  recordFinish,
+  recordStart,
+  resetStats,
+  savePrefs,
+  saveStats,
+  writeSave,
+} from './lib/storage.js'
+
+const MODE_KEYS = { v: 'value', n: 'note', g: 'yes', r: 'no' }
+
+export default function App() {
+  const [screen, setScreen] = useState('menu') // menu | preview | play
+  const [stats, setStats] = useState(loadStats)
+  const [prefs, setPrefs] = useState(loadPrefs)
+  const [dialog, setDialog] = useState(null) // stats | help | settings | win | quit
+  const [game, dispatch] = useReducer(reducer, null)
+
+  const [gen, setGen] = useState({ status: 'idle', difficulty: null, attempt: 0, result: null })
+  const [elapsed, setElapsed] = useState(0)
+  const [paused, setPaused] = useState(false)
+  const [justPlaced, setJustPlaced] = useState(null)
+  const [savedGame, setSavedGame] = useState(() => loadSave())
+
+  const workerRef = useRef(null)
+  const reqRef = useRef(0)
+
+  // ------------------------------------------------------------- generation
+  useEffect(() => {
+    const worker = new Worker(new URL('./lib/worker.js', import.meta.url), { type: 'module' })
+    worker.onmessage = (e) => {
+      const { id, type, attempt, result } = e.data
+      if (id !== reqRef.current) return // a stale request we no longer care about
+      if (type === 'progress') setGen((g) => ({ ...g, attempt }))
+      else if (type === 'done') setGen((g) => ({ ...g, status: 'ready', result }))
+    }
+    workerRef.current = worker
+    return () => worker.terminate()
+  }, [])
+
+  const requestPuzzle = useCallback((difficulty) => {
+    const id = ++reqRef.current
+    setGen({ status: 'working', difficulty, attempt: 0, result: null })
+    setScreen('preview')
+    workerRef.current?.postMessage({ id, difficulty })
+  }, [])
+
+  // ---------------------------------------------------------------- timer
+  const running = screen === 'play' && !paused && game && !game.solvedAt && !dialog
+  useEffect(() => {
+    if (!running) return
+    const t = setInterval(() => setElapsed((e) => e + 1), 1000)
+    return () => clearInterval(t)
+  }, [running])
+
+  // Stepping away pauses the clock rather than quietly inflating your time.
+  useEffect(() => {
+    const onHide = () => document.hidden && screen === 'play' && setPaused(true)
+    document.addEventListener('visibilitychange', onHide)
+    return () => document.removeEventListener('visibilitychange', onHide)
+  }, [screen])
+
+  // ------------------------------------------------------------ start / win
+  const startGame = useCallback(() => {
+    if (!gen.result) return
+    dispatch({ type: 'restore', state: createGame(gen.result) })
+    setElapsed(0)
+    setPaused(false)
+    setScreen('play')
+    setStats((s) => {
+      const next = recordStart(s, gen.result.difficulty)
+      saveStats(next)
+      return next
+    })
+  }, [gen.result])
+
+  useEffect(() => {
+    if (screen !== 'play' || !game || game.solvedAt) return
+    if (!isSolved(game)) return
+    dispatch({ type: 'solved', at: Date.now() })
+    setStats((s) => {
+      const next = recordFinish(s, {
+        difficulty: game.meta.difficulty,
+        seconds: elapsed,
+        score: game.meta.score,
+        checks: game.checksUsed,
+        mistakes: game.mistakesFound,
+      })
+      saveStats(next)
+      return next
+    })
+    clearSave()
+    setSavedGame(null)
+    setTimeout(() => setDialog('win'), 900) // let the board finish its flourish
+  }, [screen, game, elapsed])
+
+  // --------------------------------------------------------------- persist
+  useEffect(() => {
+    if (screen !== 'play' || !game || game.solvedAt) return
+    const snapshot = {
+      meta: game.meta,
+      givens: game.givens,
+      solution: game.solution,
+      values: game.values,
+      notes: game.notes,
+      mode: game.mode,
+      selected: game.selected,
+      checksUsed: game.checksUsed,
+      mistakesFound: game.mistakesFound,
+      elapsed,
+      filled: game.values.filter((v, i) => v && !game.givens[i]).length,
+    }
+    const t = setTimeout(() => writeSave(snapshot), 400)
+    return () => clearTimeout(t)
+  }, [screen, game, elapsed])
+
+  const resumeSaved = useCallback(() => {
+    const s = savedGame
+    if (!s) return
+    const restored = {
+      ...createGame({ puzzle: s.givens, solution: s.solution, ...s.meta }),
+      values: s.values,
+      notes: s.notes,
+      mode: s.mode ?? 'value',
+      selected: s.selected ?? 0,
+      checksUsed: s.checksUsed ?? 0,
+      mistakesFound: s.mistakesFound ?? 0,
+      meta: s.meta,
+    }
+    dispatch({ type: 'restore', state: restored })
+    setElapsed(s.elapsed || 0)
+    setPaused(false)
+    setScreen('play')
+  }, [savedGame])
+
+  const abandonToMenu = useCallback(() => {
+    if (game && !game.solvedAt) {
+      setStats((s) => {
+        const next = recordAbandon(s, game.meta.difficulty)
+        saveStats(next)
+        return next
+      })
+    }
+    setDialog(null)
+    setScreen('menu')
+    setSavedGame(loadSave())
+  }, [game])
+
+  // -------------------------------------------------------------- gameplay
+  const act = useCallback(
+    (action) => {
+      if (paused || !game) return
+      dispatch(action)
+    },
+    [paused, game]
+  )
+
+  const onDigit = useCallback(
+    (digit, modeOverride) => {
+      if (!game || paused || game.solvedAt) return
+      const mode = modeOverride || game.mode
+      if (mode === 'value' && game.selected != null && !game.givens[game.selected]) {
+        setJustPlaced(game.selected)
+        setTimeout(() => setJustPlaced(null), 220)
+      }
+      dispatch({ type: 'digit', digit, mode: modeOverride, prefs })
+    },
+    [game, paused, prefs]
+  )
+
+  // Clear the conflict flash once its animation has run.
+  useEffect(() => {
+    if (!game?.flash) return
+    const token = game.flash.token
+    const t = setTimeout(() => dispatch({ type: 'clearFlash', token }), 640)
+    return () => clearTimeout(t)
+  }, [game?.flash])
+
+  // ------------------------------------------------------------- keyboard
+  useEffect(() => {
+    if (screen !== 'play') return
+    const onKey = (e) => {
+      if (dialog) return
+      if (e.metaKey || e.altKey) return
+      const k = e.key
+
+      if (k >= '1' && k <= '9') {
+        e.preventDefault()
+        // Shift lets you drop a note without leaving Number mode.
+        onDigit(+k, e.shiftKey && game?.mode === 'value' ? 'note' : undefined)
+        return
+      }
+
+      const lower = k.toLowerCase()
+
+      if ((e.ctrlKey || e.metaKey) && lower === 'z') {
+        e.preventDefault()
+        act({ type: e.shiftKey ? 'redo' : 'undo' })
+        return
+      }
+      if ((e.ctrlKey || e.metaKey) && lower === 'y') {
+        e.preventDefault()
+        act({ type: 'redo' })
+        return
+      }
+      if (e.ctrlKey) return
+
+      const arrows = {
+        arrowup: [-1, 0],
+        arrowdown: [1, 0],
+        arrowleft: [0, -1],
+        arrowright: [0, 1],
+        w: [-1, 0],
+        s: [1, 0],
+        a: [0, -1],
+        d: [0, 1],
+      }
+      if (arrows[lower]) {
+        e.preventDefault()
+        const [dr, dc] = arrows[lower]
+        act({ type: 'move', dr, dc })
+        return
+      }
+
+      if (MODE_KEYS[lower]) {
+        e.preventDefault()
+        act({ type: 'mode', mode: MODE_KEYS[lower] })
+        return
+      }
+
+      switch (lower) {
+        case ' ':
+          e.preventDefault()
+          act({ type: 'cycleMode' })
+          break
+        case 'backspace':
+        case 'delete':
+        case '0':
+          e.preventDefault()
+          act({ type: 'erase' })
+          break
+        case 'c':
+          e.preventDefault()
+          act({ type: 'check' })
+          break
+        case 'p':
+          e.preventDefault()
+          if (!game?.solvedAt) setPaused((p) => !p)
+          break
+        case '?':
+        case 'h':
+          e.preventDefault()
+          setDialog('help')
+          break
+        case 'escape':
+          act({ type: 'clearErrors' })
+          break
+        default:
+          break
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [screen, dialog, game, act, onDigit])
+
+  const updatePrefs = useCallback((next) => {
+    setPrefs(next)
+    savePrefs(next)
+  }, [])
+
+  const band = game ? difficultyById(game.meta.difficulty) : null
+  const modeLabel = useMemo(() => MODES.find((m) => m.id === game?.mode)?.label, [game?.mode])
+
+  // ------------------------------------------------------------------ views
+  return (
+    <div className="app">
+      <header className="topbar">
+        <div className="brand">
+          <h1>Sudoku</h1>
+          <span className="tag">no ads, no accounts, no nonsense</span>
+        </div>
+
+        <div className="topbar-actions">
+          {screen === 'play' && game && (
+            <>
+              <span className="chip">
+                <span className="dot" />
+                {band.label}
+              </span>
+              {prefs.showTimer && (
+                <span className={`timer${paused ? ' paused' : ''}`}>{formatTime(elapsed)}</span>
+              )}
+              {!game.solvedAt && (
+                <button type="button" className="btn small" onClick={() => setPaused((p) => !p)}>
+                  {paused ? 'Resume' : 'Pause'}
+                </button>
+              )}
+            </>
+          )}
+          <button type="button" className="btn ghost small" onClick={() => setDialog('stats')}>
+            Stats
+          </button>
+          <button type="button" className="btn ghost small" onClick={() => setDialog('settings')}>
+            Settings
+          </button>
+          <button type="button" className="btn ghost small" onClick={() => setDialog('help')}>
+            Help
+          </button>
+          {screen === 'play' && (
+            <button
+              type="button"
+              className="btn small"
+              onClick={() => (game?.solvedAt ? abandonToMenu() : setDialog('quit'))}
+            >
+              New puzzle
+            </button>
+          )}
+        </div>
+      </header>
+
+      {screen === 'menu' && (
+        <StartScreen
+          stats={stats}
+          save={savedGame}
+          onPick={requestPuzzle}
+          onResume={resumeSaved}
+          onDiscard={() => {
+            clearSave()
+            setSavedGame(null)
+          }}
+        />
+      )}
+
+      {screen === 'preview' && (
+        <Preview
+          result={gen.result}
+          generating={gen.status !== 'ready'}
+          attempt={gen.attempt}
+          difficultyId={gen.difficulty}
+          onStart={startGame}
+          onRegenerate={() => requestPuzzle(gen.difficulty)}
+          onBack={() => {
+            reqRef.current++ // abandon any in-flight result
+            setScreen('menu')
+          }}
+        />
+      )}
+
+      {screen === 'play' && game && (
+        <div className="play-area">
+          <Board
+            game={game}
+            prefs={prefs}
+            paused={paused}
+            justPlaced={justPlaced}
+            onSelect={(i) => act({ type: 'select', index: i })}
+            onResume={() => setPaused(false)}
+          />
+          <SidePanel
+            game={game}
+            mode={game.mode}
+            disabled={paused || !!game.solvedAt}
+            onMode={(mode) => act({ type: 'mode', mode })}
+            onDigit={onDigit}
+            onErase={() => act({ type: 'erase' })}
+            onCheck={() => act({ type: 'check' })}
+            onUndo={() => act({ type: 'undo' })}
+            onRedo={() => act({ type: 'redo' })}
+          />
+        </div>
+      )}
+
+      {screen === 'play' && game && (
+        <p className="footer-note">
+          {modeLabel} mode · click a square then a number, or just type · press{' '}
+          <kbd style={{ padding: '1px 5px' }}>?</kbd> for keys
+        </p>
+      )}
+
+      {dialog === 'stats' && (
+        <StatsDialog
+          stats={stats}
+          onClose={() => setDialog(null)}
+          onReset={() => setStats(resetStats())}
+        />
+      )}
+      {dialog === 'help' && <HelpDialog onClose={() => setDialog(null)} />}
+      {dialog === 'settings' && (
+        <SettingsDialog prefs={prefs} onChange={updatePrefs} onClose={() => setDialog(null)} />
+      )}
+      {dialog === 'win' && game && (
+        <WinDialog
+          game={game}
+          seconds={elapsed}
+          stats={stats}
+          onNewGame={abandonToMenu}
+          onClose={() => setDialog(null)}
+        />
+      )}
+      {dialog === 'quit' && (
+        <ConfirmDialog
+          title="Leave this puzzle?"
+          body="Your progress is saved — you can pick it up from the menu. It will end your clean-solve streak for this difficulty."
+          confirmLabel="Leave puzzle"
+          onConfirm={abandonToMenu}
+          onClose={() => setDialog(null)}
+        />
+      )}
+    </div>
+  )
+}
