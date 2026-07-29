@@ -155,17 +155,29 @@ export function generatePuzzle(difficultyId, { rand = Math.random, maxAttempts =
       return buildResult(puzzle, solution, report, band, attempt)
     }
 
-    // Track the nearest miss so we always have something to hand back.
+    // Track the nearest miss so we always have something to hand back - but only
+    // ever among puzzles the technique solver actually finished. A puzzle that
+    // needs guessing is never a candidate, not even as a fallback.
+    if (!report.solved) continue
     const [minTier, maxTier] = band.tiers
     const tierMiss =
       (report.maxTier < minTier ? minTier - report.maxTier : Math.max(0, report.maxTier - maxTier)) * 1000
     const scoreMiss =
       report.score < band.score[0] ? band.score[0] - report.score : Math.max(0, report.score - band.score[1])
-    const distance = (report.solved ? 0 : 5000) + tierMiss + scoreMiss
+    const distance = tierMiss + scoreMiss
     if (distance < bestDistance) {
       bestDistance = distance
       best = { puzzle, solution, report, attempt }
     }
+  }
+
+  // Only reachable if every single attempt needed guessing, which the loop above
+  // makes vanishingly unlikely. Keep going rather than ever serve an unfair board.
+  while (!best) {
+    const solution = generateSolution(rand)
+    const puzzle = dig(solution, band.targetClues[1], rand, true)
+    const report = analyze(puzzle)
+    if (report.solved) best = { puzzle, solution, report, attempt: maxAttempts }
   }
 
   return buildResult(best.puzzle, best.solution, best.report, band, best.attempt, true)

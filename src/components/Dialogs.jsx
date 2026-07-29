@@ -146,6 +146,7 @@ const KEYS = [
   [['←', '↑', '↓', '→'], 'Move around the board'],
   [['Backspace'], 'Lift the number; press again to clear the notes under it'],
   [['C'], 'Check for wrong squares'],
+  [['H'], 'Ask for a hint'],
   [['Ctrl', '+', 'Z'], 'Undo — including undoing a Start over'],
   [['Ctrl', '+', 'Y'], 'Redo'],
   [['P'], 'Pause'],
@@ -259,8 +260,10 @@ export function WinDialog({ game, seconds, stats, onNewGame, onClose }) {
             <div className="v">{game.meta.score}</div>
           </div>
           <div className="stat">
-            <div className="k">Checks used</div>
-            <div className="v">{game.checksUsed}</div>
+            <div className="k">Checks / hints</div>
+            <div className="v">
+              {game.checksUsed} / {game.hintsUsed}
+            </div>
           </div>
         </div>
 

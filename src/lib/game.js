@@ -47,6 +47,7 @@ export function createGame(puzzleData) {
     future: [],
     checksUsed: 0,
     mistakesFound: 0,
+    hintsUsed: 0,
     solvedAt: null,
   }
 }
@@ -255,6 +256,9 @@ export function reducer(state, action) {
 
     case 'clearErrors':
       return { ...state, errors: [] }
+
+    case 'hintUsed':
+      return { ...state, hintsUsed: state.hintsUsed + 1 }
 
     // Both resets go through the history, so a mis-click is one Undo away.
     // Neither can touch the givens: the board resets to exactly the puzzle.

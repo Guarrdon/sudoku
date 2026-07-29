@@ -30,7 +30,7 @@ export function ModeSwitch({ mode, onMode }) {
   )
 }
 
-export function Keypad({ game, mode, disabled, onDigit, onErase, onCheck, onUndo, onRedo, onReset }) {
+export function Keypad({ game, mode, disabled, onDigit, onErase, onCheck, onUndo, onRedo, onReset, onHint }) {
   const left = remainingCounts(game)
   return (
     <div className="panel">
@@ -68,6 +68,9 @@ export function Keypad({ game, mode, disabled, onDigit, onErase, onCheck, onUndo
         </button>
         <button type="button" className="btn" onClick={onCheck} disabled={disabled}>
           ✓ Check
+        </button>
+        <button type="button" className="btn wide hint-btn" onClick={onHint} disabled={disabled}>
+          ? Give me a hint
         </button>
         <button
           type="button"

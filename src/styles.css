@@ -455,6 +455,33 @@ button {
   border-radius: 1px;
 }
 
+/* A hint is talking about these squares. Distinct from selection (gold) and
+   from a matching digit (blue), so the three never read as the same thing. */
+.cell.hint {
+  background: #e4f1ea;
+  outline: 2px solid #4f9c78;
+  outline-offset: -2px;
+  z-index: 3;
+}
+
+.cell.hint-focus {
+  background: #cfe9dc;
+  outline: 3px solid #2f7d4f;
+  outline-offset: -3px;
+  z-index: 4;
+  animation: hint-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes hint-pulse {
+  0%,
+  100% {
+    box-shadow: inset 0 0 0 0 rgba(47, 125, 79, 0);
+  }
+  50% {
+    box-shadow: inset 0 0 14px 0 rgba(47, 125, 79, 0.4);
+  }
+}
+
 /* -------------------------------------------------------------------- notes */
 .notes {
   position: absolute;
@@ -656,6 +683,100 @@ button {
 
 .actions .wide {
   grid-column: span 2;
+}
+
+/* --------------------------------------------------------------- hint bar */
+.board-column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  min-width: 0;
+}
+
+.hint-bar {
+  width: 100%;
+  max-width: 640px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 16px;
+  border-radius: var(--r-lg);
+  border: 1px solid #b8d8c7;
+  background: linear-gradient(180deg, #f2faf5, #e6f3ec);
+  box-shadow: var(--lift-2);
+  animation: rise 0.28s cubic-bezier(0.2, 0.8, 0.3, 1) both;
+}
+
+.hint-bar.final {
+  border-color: #8cc4a8;
+}
+
+.hint-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.hint-heading {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--yes);
+  margin-bottom: 4px;
+}
+
+.hint-body p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--ink);
+}
+
+.hint-dots {
+  display: flex;
+  gap: 5px;
+  margin-top: 9px;
+}
+
+.hint-dots span {
+  width: 18px;
+  height: 3px;
+  border-radius: 2px;
+  background: #c4ddd0;
+}
+
+.hint-dots span.on {
+  background: var(--yes);
+}
+
+.hint-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  flex: 0 0 auto;
+}
+
+.hint-btn {
+  border-color: #a9d0bd;
+  background: linear-gradient(180deg, #f4fbf7, #e7f4ed);
+}
+
+@media (max-width: 700px) {
+  .hint-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .hint-actions {
+    flex-direction: row;
+  }
+
+  .hint-actions .btn {
+    flex: 1;
+    text-align: center;
+  }
 }
 
 /* ------------------------------------------------------------------ choices */

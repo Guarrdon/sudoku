@@ -14,6 +14,8 @@ const Cell = memo(function Cell({
   flash,
   justPlaced,
   solved,
+  hint,
+  hintFocus,
   onSelect,
 }) {
   const r = rowOf(index)
@@ -27,6 +29,8 @@ const Cell = memo(function Cell({
   else if (peer) cls.push('peer')
   if (error) cls.push('error')
   if (flash) cls.push('flash')
+  if (hint) cls.push('hint')
+  if (hintFocus) cls.push('hint-focus')
   if (justPlaced) cls.push('just-placed')
   if (solved) cls.push('solved-cell')
 
@@ -62,7 +66,7 @@ const Cell = memo(function Cell({
   )
 })
 
-function Board({ game, prefs, paused, justPlaced, onSelect, onResume }) {
+function Board({ game, prefs, paused, justPlaced, hintCells, hintFocus, onSelect, onResume }) {
   const { values, givens, notes, selected, errors, flash } = game
   const selValue = selected != null ? values[selected] : 0
   const selRow = selected != null ? rowOf(selected) : -1
@@ -70,6 +74,8 @@ function Board({ game, prefs, paused, justPlaced, onSelect, onResume }) {
   const selBox = selected != null ? boxOf(selected) : -1
   const errorSet = errors
   const flashCells = flash?.cells || []
+  const hinted = hintCells || []
+  const focused = hintFocus || []
 
   return (
     <div className="board-wrap">
@@ -96,6 +102,8 @@ function Board({ game, prefs, paused, justPlaced, onSelect, onResume }) {
               error={errorSet.includes(i)}
               flash={flashCells.includes(i)}
               justPlaced={justPlaced === i}
+              hint={hinted.includes(i)}
+              hintFocus={focused.includes(i)}
               solved={!!game.solvedAt}
               onSelect={onSelect}
             />

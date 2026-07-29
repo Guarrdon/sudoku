@@ -33,6 +33,7 @@ const blankBand = () => ({
   bestScore: null,
   checks: 0,
   mistakes: 0,
+  hints: 0,
   currentStreak: 0,
   bestStreak: 0,
   lastPlayed: null,
@@ -67,13 +68,14 @@ export function recordStart(stats, difficulty) {
   return next
 }
 
-export function recordFinish(stats, { difficulty, seconds, score, checks, mistakes }) {
+export function recordFinish(stats, { difficulty, seconds, score, checks, mistakes, hints = 0 }) {
   const next = structuredClone(stats)
   const band = next.bands[difficulty]
   band.completed++
   band.totalTime += seconds
   band.checks += checks
   band.mistakes += mistakes
+  band.hints += hints
   band.lastPlayed = Date.now()
   if (band.bestTime === null || seconds < band.bestTime) band.bestTime = seconds
   if (band.bestScore === null || score > band.bestScore) band.bestScore = score

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react'
 import Board from './components/Board.jsx'
 import SidePanel from './components/SidePanel.jsx'
+import HintBar from './components/HintBar.jsx'
 import StartScreen from './components/StartScreen.jsx'
 import Preview from './components/Preview.jsx'
 import {
@@ -12,6 +13,7 @@ import {
   WinDialog,
 } from './components/Dialogs.jsx'
 import { createGame, isSolved, reducer, MODES } from './lib/game.js'
+import { findHint, hintText } from './lib/hint.js'
 import { difficultyById } from './lib/generator.js'
 import {
   clearSave,
@@ -42,6 +44,7 @@ export default function App() {
   const [paused, setPaused] = useState(false)
   const [justPlaced, setJustPlaced] = useState(null)
   const [savedGame, setSavedGame] = useState(() => loadSave())
+  const [hint, setHint] = useState(null) // { levels, level }
 
   const workerRef = useRef(null)
   const reqRef = useRef(0)
@@ -108,6 +111,7 @@ export default function App() {
           score: game.meta.score,
           checks: game.checksUsed,
           mistakes: game.mistakesFound,
+          hints: game.hintsUsed,
         })
         saveStats(next)
         return next
@@ -131,6 +135,7 @@ export default function App() {
       selected: game.selected,
       checksUsed: game.checksUsed,
       mistakesFound: game.mistakesFound,
+      hintsUsed: game.hintsUsed,
       elapsed,
       filled: game.values.filter((v, i) => v && !game.givens[i]).length,
     }
@@ -149,6 +154,7 @@ export default function App() {
       selected: s.selected ?? 0,
       checksUsed: s.checksUsed ?? 0,
       mistakesFound: s.mistakesFound ?? 0,
+      hintsUsed: s.hintsUsed ?? 0,
       meta: s.meta,
     }
     dispatch({ type: 'restore', state: restored })
@@ -191,6 +197,18 @@ export default function App() {
     },
     [game, paused, prefs]
   )
+
+  const requestHint = useCallback(() => {
+    if (!game || paused || game.solvedAt) return
+    const found = findHint(game)
+    setHint({ levels: hintText(found), level: 0 })
+    dispatch({ type: 'hintUsed' })
+  }, [game, paused])
+
+  // A hint describes one moment; any change to the board makes it stale.
+  useEffect(() => {
+    setHint(null)
+  }, [game?.values, game?.solvedAt])
 
   // Clear the conflict flash once its animation has run.
   useEffect(() => {
@@ -271,8 +289,11 @@ export default function App() {
           e.preventDefault()
           if (!game?.solvedAt) setPaused((p) => !p)
           break
-        case '?':
         case 'h':
+          e.preventDefault()
+          requestHint()
+          break
+        case '?':
           e.preventDefault()
           setDialog('help')
           break
@@ -285,13 +306,14 @@ export default function App() {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [screen, dialog, game, act, onDigit])
+  }, [screen, dialog, game, act, onDigit, requestHint])
 
   const updatePrefs = useCallback((next) => {
     setPrefs(next)
     savePrefs(next)
   }, [])
 
+  const hintLevel = hint ? hint.levels[Math.min(hint.level, hint.levels.length - 1)] : null
   const band = game ? difficultyById(game.meta.difficulty) : null
   const modeLabel = useMemo(() => MODES.find((m) => m.id === game?.mode)?.label, [game?.mode])
 
@@ -377,14 +399,26 @@ export default function App() {
 
       {screen === 'play' && game && (
         <div className="play-area">
-          <Board
-            game={game}
-            prefs={prefs}
-            paused={paused}
-            justPlaced={justPlaced}
-            onSelect={(i) => act({ type: 'select', index: i })}
-            onResume={() => setPaused(false)}
-          />
+          <div className="board-column">
+            <Board
+              game={game}
+              prefs={prefs}
+              paused={paused}
+              justPlaced={justPlaced}
+              hintCells={hintLevel?.highlight}
+              hintFocus={hintLevel?.focus}
+              onSelect={(i) => act({ type: 'select', index: i })}
+              onResume={() => setPaused(false)}
+            />
+            {hint && !paused && (
+              <HintBar
+                levels={hint.levels}
+                level={hint.level}
+                onMore={() => setHint((h) => ({ ...h, level: h.level + 1 }))}
+                onClose={() => setHint(null)}
+              />
+            )}
+          </div>
           <SidePanel
             game={game}
             mode={game.mode}
@@ -396,6 +430,7 @@ export default function App() {
             onUndo={() => act({ type: 'undo' })}
             onRedo={() => act({ type: 'redo' })}
             onReset={() => setDialog('reset')}
+            onHint={requestHint}
           />
         </div>
       )}

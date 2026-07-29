@@ -94,8 +94,28 @@ is its **hardest step** — both shown before you start, along with a full list 
 puzzle requires. If a generated board doesn't match the difficulty you asked for, it's
 thrown away and another is made.
 
-Puzzles that can't be finished by reasoning alone — where you'd have to guess — are never
-offered. Every puzzle has exactly one solution.
+**You never have to guess.** Puzzles that can't be finished by reasoning alone are never
+offered — not as a first choice, and not as a fallback. Every puzzle has exactly one
+solution, and the test suite proves the point by solving one of every difficulty using
+nothing but the hint button.
+
+### Hints
+
+If you're stuck, **Give me a hint** (or `H`) tells you what to do next — in three
+stages, so asking for help doesn't have to mean being handed the answer:
+
+1. **What to look for** — names the tactic and roughly where, e.g. *"Look for a Pointing
+   Pair in the top-left box, involving the digit 5."* Often that's all you need.
+2. **How it works** — highlights the squares involved and explains why the tactic is
+   valid, so the next one is easier to spot yourself.
+3. **The move** — the exact number you can write in, and where.
+
+A hint always ends in a number you can actually place, working forward through however
+many deductions that takes. If something you've already written is wrong, the hint says
+so first, because nothing else will work out until it's fixed.
+
+Hints never guess. They come from the same solver that rates the puzzles, and they don't
+read your notes — so wrong or missing notes can't send them astray.
 
 ### Starting over
 
@@ -140,6 +160,7 @@ Everything is reachable with the mouse; these just make it faster.
 | Arrow keys or `WASD` | Move around the board |
 | `Backspace` | Lift the number; again to clear the notes under it |
 | `C` | Check for mistakes |
+| `H` | Ask for a hint |
 | `Ctrl`+`Z` / `Ctrl`+`Y` | Undo / redo |
 | `P` | Pause |
 | `?` | Help |
@@ -156,6 +177,7 @@ src/
     generator.js   builds puzzles, measures them, retries until they fit
     worker.js      generation, kept off the main thread
     game.js        the rules of play, with no React in them
+    hint.js        finds the next move and explains it in stages
     storage.js     saved games, statistics and settings
   components/      Board, SidePanel, StartScreen, Preview, Dialogs
 test/              checks for the solver, generator and rules

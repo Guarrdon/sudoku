@@ -150,19 +150,25 @@ function place(grid, cand, i, d) {
 
 // --- individual techniques. Each returns true if it changed something. -------
 
+/** House k in HOUSES order: 0-8 rows, 9-17 columns, 18-26 boxes. */
+const houseInfo = (k) =>
+  k < 9 ? { type: 'row', index: k } : k < 18 ? { type: 'column', index: k - 9 } : { type: 'box', index: k - 18 }
+
 function nakedSingle(grid, cand) {
   for (let i = 0; i < CELLS; i++) {
     if (grid[i] || cand[i] === 0) continue
     if (bitCount(cand[i]) === 1) {
-      place(grid, cand, i, lowestDigit(cand[i]))
-      return true
+      const d = lowestDigit(cand[i])
+      place(grid, cand, i, d)
+      return { cells: [i], digits: [d], placement: { index: i, digit: d } }
     }
   }
-  return false
+  return null
 }
 
 function hiddenSingle(grid, cand) {
-  for (const house of HOUSES) {
+  for (let k = 0; k < HOUSES.length; k++) {
+    const house = HOUSES[k]
     for (let d = 1; d <= 9; d++) {
       const bit = 1 << d
       let spot = -1
@@ -180,11 +186,11 @@ function hiddenSingle(grid, cand) {
       }
       if (n === 1) {
         place(grid, cand, spot, d)
-        return true
+        return { cells: [spot], digits: [d], house: houseInfo(k), placement: { index: spot, digit: d } }
       }
     }
   }
-  return false
+  return null
 }
 
 /** Candidates for d inside a box all sit in one row/column -> clear the rest of that line. */
@@ -196,31 +202,37 @@ function pointingPair(grid, cand) {
       if (spots.length < 2) continue
       const rows = new Set(spots.map(rowOf))
       const cols = new Set(spots.map(colOf))
-      let changed = false
+      const eliminations = []
+      let line = null
       if (rows.size === 1) {
-        for (const i of ROWS[[...rows][0]]) {
+        line = { type: 'row', index: [...rows][0] }
+        for (const i of ROWS[line.index]) {
           if (boxOf(i) !== b && cand[i] & bit) {
             cand[i] &= ~bit
-            changed = true
+            eliminations.push({ index: i, digit: d })
           }
         }
       } else if (cols.size === 1) {
-        for (const i of COLS[[...cols][0]]) {
+        line = { type: 'column', index: [...cols][0] }
+        for (const i of COLS[line.index]) {
           if (boxOf(i) !== b && cand[i] & bit) {
             cand[i] &= ~bit
-            changed = true
+            eliminations.push({ index: i, digit: d })
           }
         }
       }
-      if (changed) return true
+      if (eliminations.length)
+        return { cells: spots, digits: [d], house: { type: 'box', index: b }, target: line, eliminations }
     }
   }
-  return false
+  return null
 }
 
 /** Candidates for d inside a line all sit in one box -> clear the rest of that box. */
 function claiming(grid, cand) {
-  for (const line of [...ROWS, ...COLS]) {
+  const lines = [...ROWS, ...COLS]
+  for (let k = 0; k < lines.length; k++) {
+    const line = lines[k]
     for (let d = 1; d <= 9; d++) {
       const bit = 1 << d
       const spots = line.filter((i) => cand[i] & bit)
@@ -228,55 +240,69 @@ function claiming(grid, cand) {
       const boxes = new Set(spots.map(boxOf))
       if (boxes.size !== 1) continue
       const b = [...boxes][0]
-      let changed = false
+      const eliminations = []
       for (const i of BOXES[b]) {
         if (!line.includes(i) && cand[i] & bit) {
           cand[i] &= ~bit
-          changed = true
+          eliminations.push({ index: i, digit: d })
         }
       }
-      if (changed) return true
+      if (eliminations.length)
+        return {
+          cells: spots,
+          digits: [d],
+          house: k < 9 ? { type: 'row', index: k } : { type: 'column', index: k - 9 },
+          target: { type: 'box', index: b },
+          eliminations,
+        }
     }
   }
-  return false
+  return null
 }
 
 /** n cells in a house share exactly n candidates -> those digits leave the rest of the house. */
 function nakedSubset(grid, cand, size) {
-  for (const house of HOUSES) {
+  for (let k = 0; k < HOUSES.length; k++) {
+    const house = HOUSES[k]
     const cells = house.filter((i) => !grid[i] && bitCount(cand[i]) >= 2 && bitCount(cand[i]) <= size)
     if (cells.length <= size) continue
     const combo = []
     const walk = (start, mask) => {
       if (combo.length === size) {
-        if (bitCount(mask) !== size) return false
-        let changed = false
+        if (bitCount(mask) !== size) return null
+        const eliminations = []
         for (const i of house) {
           if (combo.includes(i) || grid[i]) continue
-          if (cand[i] & mask) {
+          const gone = cand[i] & mask
+          if (gone) {
             cand[i] &= ~mask
-            changed = true
+            for (const digit of digitsOf(gone)) eliminations.push({ index: i, digit })
           }
         }
-        return changed
+        return eliminations.length
+          ? { cells: [...combo], digits: digitsOf(mask), house: houseInfo(k), eliminations }
+          : null
       }
-      for (let k = start; k < cells.length; k++) {
-        const next = mask | cand[cells[k]]
+      for (let j = start; j < cells.length; j++) {
+        const next = mask | cand[cells[j]]
         if (bitCount(next) > size) continue
-        combo.push(cells[k])
-        if (walk(k + 1, next)) return true
+        combo.push(cells[j])
+        const found = walk(j + 1, next)
+        if (found) return found
         combo.pop()
       }
-      return false
+      return null
     }
-    if (walk(0, 0)) return true
+    const found = walk(0, 0)
+    if (found) return found
   }
-  return false
+  return null
 }
 
 /** n digits appear in only the same n cells of a house -> those cells hold nothing else. */
 function hiddenSubset(grid, cand, size) {
-  for (const house of HOUSES) {
+  for (let k = 0; k < HOUSES.length; k++) {
+    const house = HOUSES[k]
     const spots = {}
     for (let d = 1; d <= 9; d++) {
       const bit = 1 << d
@@ -288,29 +314,34 @@ function hiddenSubset(grid, cand, size) {
     const combo = []
     const walk = (start, union) => {
       if (combo.length === size) {
-        if (union.size !== size) return false
+        if (union.size !== size) return null
         const mask = combo.reduce((m, d) => m | (1 << d), 0)
-        let changed = false
+        const eliminations = []
         for (const i of union) {
-          if (cand[i] & ~mask) {
+          const gone = cand[i] & ~mask
+          if (gone) {
             cand[i] &= mask
-            changed = true
+            for (const digit of digitsOf(gone)) eliminations.push({ index: i, digit })
           }
         }
-        return changed
+        return eliminations.length
+          ? { cells: [...union], digits: [...combo], house: houseInfo(k), eliminations }
+          : null
       }
-      for (let k = start; k < digits.length; k++) {
-        const next = new Set([...union, ...spots[digits[k]]])
+      for (let j = start; j < digits.length; j++) {
+        const next = new Set([...union, ...spots[digits[j]]])
         if (next.size > size) continue
-        combo.push(digits[k])
-        if (walk(k + 1, next)) return true
+        combo.push(digits[j])
+        const found = walk(j + 1, next)
+        if (found) return found
         combo.pop()
       }
-      return false
+      return null
     }
-    if (walk(0, new Set())) return true
+    const found = walk(0, new Set())
+    if (found) return found
   }
-  return false
+  return null
 }
 
 /** Basic fish: `size` lines where digit d sits in the same `size` cross-lines. */
@@ -330,32 +361,40 @@ function fish(grid, cand, size) {
       const combo = []
       const walk = (start, union) => {
         if (combo.length === size) {
-          if (union.size !== size) return false
-          let changed = false
+          if (union.size !== size) return null
+          const eliminations = []
           for (const c of union) {
             for (const i of crossLines[c]) {
               if (combo.some((u) => u.l === lineOf(i))) continue // keep the fish's own lines
               if (cand[i] & bit) {
                 cand[i] &= ~bit
-                changed = true
+                eliminations.push({ index: i, digit: d })
               }
             }
           }
-          return changed
+          if (!eliminations.length) return null
+          return {
+            cells: combo.flatMap((u) => lines[u.l].filter((i) => union.has(crossOf(i)))),
+            digits: [d],
+            house: { type: lines === ROWS ? 'row' : 'column', index: combo[0].l },
+            eliminations,
+          }
         }
-        for (let k = start; k < usable.length; k++) {
-          const next = new Set([...union, ...usable[k].crosses])
+        for (let j = start; j < usable.length; j++) {
+          const next = new Set([...union, ...usable[j].crosses])
           if (next.size > size) continue
-          combo.push(usable[k])
-          if (walk(k + 1, next)) return true
+          combo.push(usable[j])
+          const found = walk(j + 1, next)
+          if (found) return found
           combo.pop()
         }
-        return false
+        return null
       }
-      if (walk(0, new Set())) return true
+      const found = walk(0, new Set())
+      if (found) return found
     }
   }
-  return false
+  return null
 }
 
 /** Pivot XY sees XZ and YZ -> Z is impossible everywhere both wings can see. */
@@ -377,21 +416,22 @@ function xyWing(grid, cand) {
         for (const b of wings) {
           if (b === a || cand[b] !== wantB) continue
           const zbit = 1 << z
-          let changed = false
+          const eliminations = []
           for (const i of PEERS[a]) {
             if (i === pivot || i === b) continue
             if (!PEERS[b].includes(i)) continue
             if (cand[i] & zbit) {
               cand[i] &= ~zbit
-              changed = true
+              eliminations.push({ index: i, digit: z })
             }
           }
-          if (changed) return true
+          if (eliminations.length)
+            return { cells: [pivot, a, b], digits: [z], pivot, eliminations }
         }
       }
     }
   }
-  return false
+  return null
 }
 
 // Ordered cheapest-first: the analyser always reaches for the simplest tool that
@@ -433,7 +473,7 @@ export function analyze(puzzle) {
 
     let progressed = false
     for (const [name, fn] of STRATEGIES) {
-      if (!fn(grid, cand)) continue
+      if (!fn(grid, cand)) continue // the move is applied as a side effect
       const t = TECHNIQUES[name]
       techniques[name] = (techniques[name] || 0) + 1
       score += t.cost
@@ -456,4 +496,4 @@ export function analyze(puzzle) {
   return { solved, score, techniques, hardest, maxTier }
 }
 
-export { bitCount, digitsOf }
+export { bitCount, digitsOf, buildCandidates, STRATEGIES }
