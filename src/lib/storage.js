@@ -118,7 +118,18 @@ export const clearSave = () => {
 
 // ------------------------------------------------------------------- prefs
 
+/** Touch devices get number-first by default: one tap to arm a digit, then tap
+ *  squares, instead of two taps per square with a long thumb journey between. */
+const prefersNumberFirst = () => {
+  try {
+    return window.matchMedia('(pointer: coarse)').matches
+  } catch {
+    return false
+  }
+}
+
 export const defaultPrefs = {
+  inputOrder: 'auto', // 'auto' | 'cell' | 'digit' - resolved by resolveInputOrder
   recordStats: true, // off = play freely without touching your record
   autoClearNotes: true, // placing a digit clears matching plain notes from peers
   highlightPeers: true, // dim-highlight the row, column and box of the selection
@@ -128,6 +139,10 @@ export const defaultPrefs = {
 }
 
 export const loadPrefs = () => ({ ...defaultPrefs, ...read(PREFS_KEY, {}) })
+
+/** 'auto' means "whatever suits this device". */
+export const resolveInputOrder = (prefs) =>
+  prefs.inputOrder === 'auto' ? (prefersNumberFirst() ? 'digit' : 'cell') : prefs.inputOrder
 export const savePrefs = (prefs) => write(PREFS_KEY, prefs)
 
 // ------------------------------------------------------------------ format

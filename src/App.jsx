@@ -7,6 +7,7 @@ import Preview from './components/Preview.jsx'
 import {
   ConfirmDialog,
   HelpDialog,
+  MenuDialog,
   ResetDialog,
   SettingsDialog,
   StatsDialog,
@@ -25,6 +26,7 @@ import {
   recordFinish,
   recordStart,
   resetStats,
+  resolveInputOrder,
   savePrefs,
   saveStats,
   writeSave,
@@ -45,6 +47,9 @@ export default function App() {
   const [justPlaced, setJustPlaced] = useState(null)
   const [savedGame, setSavedGame] = useState(() => loadSave())
   const [hint, setHint] = useState(null) // { levels, level }
+  const [armed, setArmed] = useState(null) // number-first: the digit on the brush
+
+  const inputOrder = resolveInputOrder(prefs)
 
   const workerRef = useRef(null)
   const reqRef = useRef(0)
@@ -90,6 +95,7 @@ export default function App() {
     dispatch({ type: 'restore', state: createGame(gen.result) })
     setElapsed(0)
     setPaused(false)
+    setArmed(null)
     setScreen('play')
     if (!prefs.recordStats) return
     setStats((s) => {
@@ -186,16 +192,31 @@ export default function App() {
   )
 
   const onDigit = useCallback(
-    (digit, modeOverride) => {
+    (digit, modeOverride, index) => {
       if (!game || paused || game.solvedAt) return
+      const target = index ?? game.selected
       const mode = modeOverride || game.mode
-      if (mode === 'value' && game.selected != null && !game.givens[game.selected]) {
-        setJustPlaced(game.selected)
+      if (mode === 'value' && target != null && !game.givens[target]) {
+        setJustPlaced(target)
         setTimeout(() => setJustPlaced(null), 220)
       }
-      dispatch({ type: 'digit', digit, mode: modeOverride, prefs })
+      dispatch({ type: 'digit', digit, mode: modeOverride, prefs, index })
     },
     [game, paused, prefs]
+  )
+
+  /**
+   * A keypad press means different things depending on the order you play in.
+   * Number-first: it arms the digit (or disarms it if already armed) and nothing
+   * lands until you tap a square. Square-first: it applies straight away.
+   */
+  const onPadPress = useCallback(
+    (digit) => {
+      if (!game || paused || game.solvedAt) return
+      if (inputOrder === 'digit') setArmed((a) => (a === digit ? null : digit))
+      else onDigit(digit)
+    },
+    [game, paused, inputOrder, onDigit]
   )
 
   const requestHint = useCallback(() => {
@@ -204,6 +225,11 @@ export default function App() {
     setHint({ levels: hintText(found), level: 0 })
     dispatch({ type: 'hintUsed' })
   }, [game, paused])
+
+  // The brush is meaningless outside number-first play, or once the grid is done.
+  useEffect(() => {
+    if (inputOrder !== 'digit' || game?.solvedAt) setArmed(null)
+  }, [inputOrder, game?.solvedAt])
 
   // A hint describes one moment; any change to the board makes it stale.
   useEffect(() => {
@@ -348,19 +374,27 @@ export default function App() {
               Not recording
             </span>
           )}
-          <button type="button" className="btn ghost small" onClick={() => setDialog('stats')}>
+          <button type="button" className="btn ghost small only-wide" onClick={() => setDialog('stats')}>
             Stats
           </button>
-          <button type="button" className="btn ghost small" onClick={() => setDialog('settings')}>
+          <button type="button" className="btn ghost small only-wide" onClick={() => setDialog('settings')}>
             Settings
           </button>
-          <button type="button" className="btn ghost small" onClick={() => setDialog('help')}>
+          <button type="button" className="btn ghost small only-wide" onClick={() => setDialog('help')}>
             Help
+          </button>
+          <button
+            type="button"
+            className="btn small only-narrow"
+            onClick={() => setDialog('menu')}
+            aria-label="More"
+          >
+            ⋯
           </button>
           {screen === 'play' && (
             <button
               type="button"
-              className="btn small"
+              className="btn small only-wide"
               onClick={() => (game?.solvedAt ? abandonToMenu() : setDialog('quit'))}
             >
               New puzzle
@@ -407,7 +441,11 @@ export default function App() {
               justPlaced={justPlaced}
               hintCells={hintLevel?.highlight}
               hintFocus={hintLevel?.focus}
-              onSelect={(i) => act({ type: 'select', index: i })}
+              armed={armed}
+              onSelect={(i) => {
+                if (armed && !game.solvedAt) onDigit(armed, undefined, i)
+                else act({ type: 'select', index: i })
+              }}
               onResume={() => setPaused(false)}
             />
             {hint && !paused && (
@@ -424,13 +462,18 @@ export default function App() {
             mode={game.mode}
             disabled={paused || !!game.solvedAt}
             onMode={(mode) => act({ type: 'mode', mode })}
-            onDigit={onDigit}
+            armed={armed}
+            inputOrder={inputOrder}
+            onDigit={onPadPress}
             onErase={() => act({ type: 'erase' })}
             onCheck={() => act({ type: 'check' })}
             onUndo={() => act({ type: 'undo' })}
             onRedo={() => act({ type: 'redo' })}
             onReset={() => setDialog('reset')}
             onHint={requestHint}
+            onToggleOrder={() =>
+              updatePrefs({ ...prefs, inputOrder: inputOrder === 'digit' ? 'cell' : 'digit' })
+            }
           />
         </div>
       )}
@@ -461,6 +504,19 @@ export default function App() {
           seconds={elapsed}
           stats={stats}
           onNewGame={abandonToMenu}
+          onClose={() => setDialog(null)}
+        />
+      )}
+      {dialog === 'menu' && (
+        <MenuDialog
+          inGame={screen === 'play'}
+          onPick={(what) => {
+            if (what === 'new') {
+              setDialog(null)
+              if (game?.solvedAt || screen !== 'play') abandonToMenu()
+              else setDialog('quit')
+            } else setDialog(what)
+          }}
           onClose={() => setDialog(null)}
         />
       )}

@@ -604,6 +604,8 @@ button {
   gap: 8px;
 }
 
+/* Erase lives with the numbers, where your hand already is. On a wide panel it
+   spans the three columns; on a phone it fills the tenth slot of the 5x2 pad. */
 .key {
   position: relative;
   aspect-ratio: 1;
@@ -641,6 +643,97 @@ button {
   color: var(--ink-faint);
 }
 
+/* The digit currently on the brush, in number-first play. */
+.key.armed {
+  background: linear-gradient(180deg, #3a6cbb, #2b579c);
+  border-color: #24497f;
+  color: #fff;
+  box-shadow: 0 1px 2px rgba(20, 45, 85, 0.3), 0 6px 16px rgba(30, 70, 130, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  transform: translateY(-1px);
+}
+
+.key.armed .left {
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.pad.m-note .key.armed,
+.pad.m-yes .key.armed,
+.pad.m-no .key.armed {
+  color: #fff;
+}
+
+.pad-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 11px;
+}
+
+.pad-head h3 {
+  margin: 0;
+}
+
+.order-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid var(--rule);
+  background: #fffdf8;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--ink-soft);
+  box-shadow: var(--lift-1);
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.order-toggle:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.order-toggle .swap {
+  font-size: 13px;
+  line-height: 1;
+}
+
+.pad-hint {
+  margin: 9px 0 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--ink-faint);
+  min-height: 17px;
+}
+
+/* Action buttons: icon over caption, so they stay legible when they shrink. */
+.btn.act {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 8px 6px;
+  min-height: 48px;
+}
+
+.btn.act .ico {
+  font-size: 15px;
+  line-height: 1;
+}
+
+.btn.act .cap {
+  font-size: 11.5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.only-narrow {
+  display: none;
+}
+
 /* All nine placed: the key retires rather than shouting at you. */
 .key.done {
   color: var(--ink-faint);
@@ -650,6 +743,18 @@ button {
 
 .key.done .left {
   display: none;
+}
+
+/* Erase lives with the numbers, where your hand already is. On a wide panel it
+   spans the three columns; on a phone it fills the tenth slot of the 5x2 pad.
+   Needs .key.key-erase to beat .key's own aspect-ratio. */
+.key.key-erase {
+  grid-column: span 3;
+  aspect-ratio: auto;
+  min-height: 46px;
+  font-family: var(--font-ui);
+  font-size: 17px;
+  color: var(--ink-soft);
 }
 
 .pad.m-note .key {
@@ -669,9 +774,9 @@ button {
 
 .actions {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 8px;
-  margin-top: 10px;
+  margin-top: 12px;
 }
 
 .actions .btn {
@@ -1357,59 +1462,177 @@ kbd {
   .side {
     position: static;
     width: 100%;
-    max-width: 420px;
+    max-width: 460px;
     margin: 0 auto;
+    gap: 10px;
   }
 
-  .pad {
-    grid-template-columns: repeat(9, 1fr);
-    gap: 5px;
+  /* One card instead of two: on a phone every pixel spent on panel chrome is a
+     pixel not spent on the board. The mode strip becomes a bare row. */
+  .panel {
+    padding: 12px;
   }
 
-  .key {
-    font-size: 20px;
-    border-radius: var(--r-sm);
-    min-width: 0; /* let the nine tracks shrink below their glyph width */
+  .panel-mode {
+    background: none;
+    border: 0;
+    box-shadow: none;
+    padding: 0;
   }
 
-  .key .left {
+  .panel-mode h3 {
     display: none;
+  }
+
+  .pad-head h3 {
+    display: none;
+  }
+
+  .pad-head {
+    margin-bottom: 8px;
+    justify-content: flex-end;
   }
 
   .modes {
     grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
   }
 
   .mode {
     align-items: center;
     padding: 8px 4px;
+    min-height: 48px;
+    justify-content: center;
   }
 
   .mode .m-label {
     font-size: 12.5px;
   }
+
+  .mode .m-key {
+    display: none; /* no keyboard here */
+  }
+
+  .mode-hint {
+    display: none; /* the pad hint says what matters */
+  }
+
+  /* Five across, two rows: big enough for a thumb without burying the board. */
+  .pad {
+    grid-template-columns: repeat(5, 1fr);
+    gap: 7px;
+  }
+
+  .key {
+    aspect-ratio: auto;
+    min-height: 54px;
+    font-size: 25px;
+    border-radius: var(--r-md);
+    min-width: 0;
+  }
+
+  .key .left {
+    display: block;
+    right: 4px;
+    bottom: 2px;
+    font-size: 9.5px;
+  }
+
+  .key.key-erase {
+    grid-column: auto;
+    min-height: 54px;
+    font-size: 20px;
+  }
+
+  /* Six actions in one row: reachable without pushing the board off screen. */
+  .actions {
+    grid-template-columns: repeat(5, 1fr);
+    gap: 6px;
+    margin-top: 10px;
+  }
+
+  .btn.act {
+    min-height: 50px;
+    padding: 6px 2px;
+  }
+
+  .btn.act .cap {
+    font-size: 9.5px;
+  }
+
+  .only-narrow {
+    display: inline-flex;
+  }
+
+  .only-wide {
+    display: none;
+  }
+
+  /* Cap the board by available HEIGHT too, so the keypad is always on screen
+     with it - scrolling away from the grid to reach the numbers was the worst
+     part of the old layout. */
+  .board {
+    --cell: clamp(28px, min(calc((100cqw - 34px) / 9), calc((100dvh - 400px) / 9)), 56px);
+  }
+
+  .pad-hint {
+    margin-top: 7px;
+    min-height: 0;
+  }
 }
 
 @media (max-width: 560px) {
   .app {
-    padding: 12px 10px 28px;
+    padding: 10px 10px 20px;
+    gap: 12px;
   }
 
-  .brand .tag {
-    display: none;
+  .topbar {
+    gap: 8px;
   }
 
   .brand h1 {
-    font-size: 24px;
+    font-size: 22px;
   }
 
+  .topbar-actions {
+    gap: 7px;
+  }
+
+  /* Cap the board so the numbers are always on screen with it - scrolling away
+     from the grid to reach the keypad was the worst part of the old layout. */
   .summary {
     grid-template-columns: 1fr;
   }
+
+  .footer-note {
+    display: none;
+  }
+
+  .play-area {
+    gap: 12px;
+  }
+
+  .board-column {
+    gap: 10px;
+  }
 }
 
-/* Respect a stated preference for less motion - all the meaning is in colour
-   and position, never in the animation alone. */
+/* Coarse pointers get roomier targets whatever the screen width. */
+@media (pointer: coarse) {
+  .key {
+    min-height: 56px;
+  }
+
+  .btn.act {
+    min-height: 52px;
+  }
+
+  .cell {
+    touch-action: manipulation;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
