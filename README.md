@@ -24,14 +24,26 @@ npm run build     # writes a self-contained site to dist/
 Classic Sudoku: fill the grid so every row, every column and every 3×3 box contains the
 digits 1 to 9 exactly once. The dark numbers are the puzzle; the blue ones are yours.
 
-Click a square and then a number, or click a square and type. Both work everywhere.
+There are two ways to enter numbers, and you can switch between them at any time with the
+toggle above the keypad:
+
+- **Square first** — tap a square, then a number. The default with a mouse.
+- **Number first** — tap a number to pick it up, then tap squares to apply it. The default
+  on a phone or tablet: one tap arms the digit and it stays armed, so filling in several
+  squares is one tap each instead of a trip back to the keypad every time. The armed number
+  also highlights everywhere it already appears, which makes scanning easy.
+
+The answer → green → red → clear cycle works the same in both: in number-first, tapping the
+same square again with a number held walks that square through the cycle for that number.
+
+Typing on a keyboard always applies to the selected square, whichever order you're in.
 
 ### Choosing a puzzle
 
 Pick a difficulty and you're shown the board *before* you start — its measured difficulty
-score, how many numbers you're given, and the hardest tactic it needs. Nothing is timed
-until you press
-**Play this board**, so you can look at a puzzle and ask for a different one at no cost.
+score, how many numbers you're given, and the hardest tactic it needs. Nothing is timed until
+you press **Play this board**, so you can look at a puzzle and ask for a different one at no
+cost.
 
 ### Notes
 
@@ -129,6 +141,18 @@ read your notes — so wrong or missing notes can't send them astray.
 Neither touches the puzzle's own numbers, the timer keeps running, and either can be
 undone with `Ctrl`+`Z`.
 
+### On a phone
+
+The layout is built so the board and the numbers are on screen together — no scrolling away
+from the grid to reach the keypad and back. Number keys and buttons are sized for a thumb,
+the mode strip sits directly under the board, and the header collapses to a single row with
+the rest behind a menu.
+
+One limitation worth knowing: nine squares across a phone screen caps each square at roughly
+40px, short of the 44px usually recommended for touch targets. That is arithmetic rather than
+styling — the board would have to be wider than the phone. Number-first input offsets it by
+roughly halving the number of taps.
+
 ## Statistics
 
 Per difficulty: how many you've solved, your best and average time, and a streak counting
@@ -140,9 +164,9 @@ time.
 
 ## Your data
 
-Everything stays in your browser. There is no server, no account, and the game makes no
-network requests at all — you can disconnect and it works exactly the same. Your times and
-statistics are stored locally, and clearing your browser data removes them.
+Everything stays in your browser. There is no server and no account, and the game makes no
+network requests of its own — you can disconnect and it plays exactly the same. Your times
+and statistics are stored locally, and clearing your browser data removes them.
 
 Games in progress are saved automatically, so you can close the tab and pick up where you
 left off.
@@ -158,6 +182,7 @@ Everything is reachable with the mouse; these just make it faster.
 | `Shift`+`1`–`9` | Straight to a note, without changing mode |
 | `V` `N` `G` `R` | Number / Note / Green / Red mode |
 | `Space` | Step through the modes |
+| `Esc` | Clear mistake highlighting |
 | Arrow keys or `WASD` | Move around the board |
 | `Backspace` | Lift the number; again to clear the notes under it |
 | `C` | Check for mistakes |

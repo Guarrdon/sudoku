@@ -227,15 +227,20 @@ export function reducer(state, action) {
       return { ...state, mode: MODES[(i + 1) % MODES.length].id }
     }
 
+    // `index` lets a digit be applied to a square directly - that's how
+    // number-first input works: arm a digit, then tap squares.
     case 'digit': {
-      const index = state.selected
+      const index = action.index ?? state.selected
       if (index == null || state.solvedAt) return state
       const mode = action.mode || state.mode
-      if (mode === 'value') return placeValue(state, index, action.digit, action.prefs)
-      if (mode === 'note') return cycleNote(state, index, action.digit)
-      if (mode === 'yes') return toggleNote(state, index, action.digit, NOTE_YES)
-      if (mode === 'no') return toggleNote(state, index, action.digit, NOTE_NO)
-      return state
+      let next = state
+      if (mode === 'value') next = placeValue(state, index, action.digit, action.prefs)
+      else if (mode === 'note') next = cycleNote(state, index, action.digit)
+      else if (mode === 'yes') next = toggleNote(state, index, action.digit, NOTE_YES)
+      else if (mode === 'no') next = toggleNote(state, index, action.digit, NOTE_NO)
+      // Keep the selection on the square just touched, so highlighting follows
+      // the thumb even when the digit came first.
+      return next === state ? { ...state, selected: index } : { ...next, selected: index }
     }
 
     case 'erase':

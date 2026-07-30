@@ -287,6 +287,37 @@ export function WinDialog({ game, seconds, stats, onNewGame, onClose }) {
   )
 }
 
+// -------------------------------------------------------------- mobile menu
+
+/** On a narrow screen the header can't hold everything, so it lives here. */
+export function MenuDialog({ inGame, onPick, onClose }) {
+  const items = [
+    ['stats', 'Statistics', 'Times, streaks, and whether games are being recorded'],
+    ['settings', 'Settings', 'Highlighting, note tidying, the timer'],
+    ['help', 'How to play', 'Notes, modes and every keyboard shortcut'],
+  ]
+  if (inGame) items.push(['new', 'New puzzle', 'Leave this one and pick a different board'])
+
+  return (
+    <Overlay onClose={onClose} labelledBy="menu-title">
+      <h2 id="menu-title">Menu</h2>
+      <div className="choice-list" style={{ marginTop: 16 }}>
+        {items.map(([id, title, desc]) => (
+          <button key={id} type="button" className="choice" onClick={() => onPick(id)}>
+            <div className="c-title">{title}</div>
+            <div className="c-desc">{desc}</div>
+          </button>
+        ))}
+      </div>
+      <div className="dialog-actions">
+        <button type="button" className="btn primary" onClick={onClose}>
+          Close
+        </button>
+      </div>
+    </Overlay>
+  )
+}
+
 // ------------------------------------------------------------------- reset
 
 export function ResetDialog({ game, onClearAnswers, onClearAll, onClose }) {

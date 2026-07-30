@@ -66,9 +66,11 @@ const Cell = memo(function Cell({
   )
 })
 
-function Board({ game, prefs, paused, justPlaced, hintCells, hintFocus, onSelect, onResume }) {
+function Board({ game, prefs, paused, justPlaced, hintCells, hintFocus, armed, onSelect, onResume }) {
   const { values, givens, notes, selected, errors, flash } = game
-  const selValue = selected != null ? values[selected] : 0
+  // The armed digit takes over match-highlighting: while you hold a number,
+  // seeing where it already lives is exactly what you need.
+  const selValue = armed || (selected != null ? values[selected] : 0)
   const selRow = selected != null ? rowOf(selected) : -1
   const selCol = selected != null ? colOf(selected) : -1
   const selBox = selected != null ? boxOf(selected) : -1
@@ -97,7 +99,7 @@ function Board({ game, prefs, paused, justPlaced, hintCells, hintFocus, onSelect
                 (rowOf(i) === selRow || colOf(i) === selCol || boxOf(i) === selBox)
               }
               match={
-                prefs.highlightMatches && selValue !== 0 && values[i] === selValue && selected !== i
+                prefs.highlightMatches && selValue !== 0 && values[i] === selValue && (armed ? true : selected !== i)
               }
               error={errorSet.includes(i)}
               flash={flashCells.includes(i)}
