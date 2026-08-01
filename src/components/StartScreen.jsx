@@ -1,7 +1,7 @@
 import { DIFFICULTIES } from '../lib/generator.js'
 import { formatTime } from '../lib/storage.js'
 
-export default function StartScreen({ stats, save, onPick, onResume, onDiscard }) {
+export default function StartScreen({ stats, save, onPick, onResume, onDiscard, onTrain }) {
   return (
     <div className="screen">
       <div className="hero">
@@ -59,6 +59,24 @@ export default function StartScreen({ stats, save, onPick, onResume, onDiscard }
             </button>
           )
         })}
+      </div>
+
+      <div className="diff-list" style={{ marginTop: 18 }}>
+        <button type="button" className="diff" onClick={onTrain}>
+          <div className="rank" style={{ width: 28, fontSize: 20, justifyContent: 'center' }}>
+            ◎
+          </div>
+          <div className="body">
+            <div className="name">Training</div>
+            <div className="blurb">
+              Twelve strategies, from the first single to the swordfish — each on a board set up
+              to show it, with everything that does not matter dimmed out.
+            </div>
+          </div>
+          <div className="go" aria-hidden="true">
+            →
+          </div>
+        </button>
       </div>
 
       <p className="footer-note">

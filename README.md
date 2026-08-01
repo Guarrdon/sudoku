@@ -1,7 +1,8 @@
 # Sudoku
 
 Sudoku that runs entirely in your browser. Five difficulty levels, coloured pencil-mark
-notes, and a timer and statistics kept on your own device.
+notes, a timer and statistics kept on your own device, and a training section that teaches
+the strategies on boards set up to show them.
 
 ![An Expert puzzle part-solved: coloured notes, and a hint explaining the XY-Wing that unlocks the next number](docs/board.png)
 
@@ -130,6 +131,38 @@ so first, because nothing else will work out until it's fixed.
 Hints never guess. They come from the same solver that rates the puzzles, and they don't
 read your notes — so wrong or missing notes can't send them astray.
 
+## Training
+
+**Training**, in the header, is where the strategies themselves are taught — twelve of
+them, from the first single up to the swordfish, in the order worth learning them in.
+
+Pick one and the board is set to a position where that strategy is the move, and then
+**everything the deduction does not rest on is dimmed out**. For a hidden single that
+leaves one house lit, plus the digits elsewhere on the board that do the blocking — the
+cross-hatch you would draw by eye. For a swordfish it leaves three rows and three
+columns, with only that one digit's candidates drawn and the rest of the board's notes
+hidden. What is left on screen is the whole argument and nothing else.
+
+Each lesson then walks through it in three steps, with the board revealing a little more
+as you go:
+
+1. **The position** — what is lit, and what question to ask of it
+2. **The pattern** — the squares the strategy is about, and the marks that make it
+3. **The deduction** — what it proves, with the notes it kills struck through in red
+
+Alongside sits the reasoning in full: what the strategy is, *why it holds* — the actual
+proof, not a rule to memorise — and how to go looking for it in your own game. Each
+strategy carries three different example boards, so you can see the same shape more than
+once. Arrow keys step through, and you can drop into training mid-puzzle and come back to
+your game exactly as you left it, clock paused.
+
+The positions are not mock-ups. Each lesson stores a real puzzle, and the app replays it
+through the same solver that rates puzzles and gives hints, stopping at the move — so
+what you are shown is a position a player would actually reach. The test suite solves
+every example outright and checks that what each lesson claims is true: that nothing it
+rules out is the right answer, that no square the argument needs has been dimmed, and
+that every candidate on screen is honest.
+
 ### Starting over
 
 **Start over**, beside the board, offers two choices:
@@ -204,9 +237,12 @@ src/
     worker.js      generation, kept off the main thread
     game.js        the rules of play, with no React in them
     hint.js        finds the next move and explains it in stages
+    training.js    replays a puzzle to a teaching position, and explains it
+    lessons.js     the example puzzles, found by scripts/find-lessons.mjs
     storage.js     saved games, statistics and settings
-  components/      Board, SidePanel, HintBar, StartScreen, Preview, Dialogs
-test/              checks for the solver, generator, rules and hints
+  components/      Board, TrainingBoard, SidePanel, HintBar, StartScreen, Preview,
+                   Training, Dialogs
+test/              checks for the solver, generator, rules, hints and training
 ```
 
 ```bash
@@ -217,7 +253,12 @@ Because the rules live apart from the interface, they can be tested directly. Th
 cover puzzle generation and rating, every input rule (including that notes survive a
 number being placed on top of them), and the hint engine — which they check by solving a
 puzzle of each difficulty using nothing but hints, verifying every suggested move against
-the real solution.
+the real solution. The training lessons are checked the same way: every example is solved
+outright, and each lesson's claims are held up against the answer.
+
+The example positions are searched for by `node scripts/find-lessons.mjs`, which generates
+puzzles until it has clear examples of all twelve techniques and rewrites `src/lib/lessons.js`.
+It only needs re-running if you want different examples.
 
 ## Licence
 

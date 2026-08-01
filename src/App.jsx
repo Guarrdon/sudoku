@@ -4,6 +4,7 @@ import SidePanel from './components/SidePanel.jsx'
 import HintBar from './components/HintBar.jsx'
 import StartScreen from './components/StartScreen.jsx'
 import Preview from './components/Preview.jsx'
+import Training from './components/Training.jsx'
 import {
   ConfirmDialog,
   HelpDialog,
@@ -35,7 +36,8 @@ import {
 const MODE_KEYS = { v: 'value', n: 'note', g: 'yes', r: 'no' }
 
 export default function App() {
-  const [screen, setScreen] = useState('menu') // menu | preview | play
+  const [screen, setScreen] = useState('menu') // menu | preview | play | training
+  const [cameFrom, setCameFrom] = useState('menu') // where training should hand back to
   const [stats, setStats] = useState(loadStats)
   const [prefs, setPrefs] = useState(loadPrefs)
   const [dialog, setDialog] = useState(null) // stats | help | settings | win | quit
@@ -339,6 +341,22 @@ export default function App() {
     savePrefs(next)
   }, [])
 
+  /**
+   * Training is a detour, not a departure. The game state is left exactly where
+   * it was - the clock stops, because `running` wants the play screen - so you
+   * can go and look up a technique in the middle of a puzzle and come straight
+   * back to it.
+   */
+  const openTraining = useCallback(() => {
+    setDialog(null)
+    if (screen !== 'training') setCameFrom(screen)
+    setScreen('training')
+  }, [screen])
+
+  const leaveTraining = useCallback(() => {
+    setScreen(cameFrom === 'preview' && !gen.result ? 'menu' : cameFrom)
+  }, [cameFrom, gen.result])
+
   const hintLevel = hint ? hint.levels[Math.min(hint.level, hint.levels.length - 1)] : null
   const band = game ? difficultyById(game.meta.difficulty) : null
   const modeLabel = useMemo(() => MODES.find((m) => m.id === game?.mode)?.label, [game?.mode])
@@ -374,6 +392,13 @@ export default function App() {
               Not recording
             </span>
           )}
+          <button
+            type="button"
+            className={`btn small only-wide${screen === 'training' ? ' primary' : ' ghost'}`}
+            onClick={screen === 'training' ? leaveTraining : openTraining}
+          >
+            {screen === 'training' ? 'Leave training' : 'Training'}
+          </button>
           <button type="button" className="btn ghost small only-wide" onClick={() => setDialog('stats')}>
             Stats
           </button>
@@ -413,8 +438,11 @@ export default function App() {
             clearSave()
             setSavedGame(null)
           }}
+          onTrain={openTraining}
         />
       )}
+
+      {screen === 'training' && <Training onExit={leaveTraining} />}
 
       {screen === 'preview' && (
         <Preview
@@ -510,8 +538,14 @@ export default function App() {
       {dialog === 'menu' && (
         <MenuDialog
           inGame={screen === 'play'}
+          inTraining={screen === 'training'}
           onPick={(what) => {
-            if (what === 'new') {
+            if (what === 'training') {
+              openTraining()
+            } else if (what === 'leave-training') {
+              setDialog(null)
+              leaveTraining()
+            } else if (what === 'new') {
               setDialog(null)
               if (game?.solvedAt || screen !== 'play') abandonToMenu()
               else setDialog('quit')
