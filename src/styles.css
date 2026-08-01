@@ -1423,6 +1423,52 @@ kbd {
   transform: translateX(19px);
 }
 
+/* ------------------------------------------------------------------ assist */
+.assist-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0 0;
+  margin-top: 10px;
+  border-top: 1px solid var(--rule);
+}
+
+.assist-row:first-of-type {
+  padding-top: 0;
+  margin-top: 0;
+  border-top: 0;
+}
+
+.assist-row .a-label {
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+.assist-row .a-desc {
+  font-size: 11.5px;
+  color: var(--ink-faint);
+  margin-top: 2px;
+  line-height: 1.4;
+}
+
+/* A shade smaller than the one in Settings - this one lives beside the board
+   and should not compete with the keypad for attention. */
+.panel-assist .switch {
+  width: 38px;
+  height: 22px;
+  margin-top: 1px;
+}
+
+.panel-assist .switch::after {
+  width: 16px;
+  height: 16px;
+}
+
+.panel-assist .switch.on::after {
+  transform: translateX(16px);
+}
+
 /* ------------------------------------------------------------------- pause */
 .paused-veil {
   position: absolute;

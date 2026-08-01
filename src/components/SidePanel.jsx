@@ -30,6 +30,57 @@ export function ModeSwitch({ mode, onMode }) {
   )
 }
 
+/**
+ * The two pieces of bookkeeping the game can do for you, kept beside the board
+ * rather than behind a settings window - they are part of how you are choosing
+ * to play this puzzle, and worth changing mid-solve once you want the practice.
+ *
+ * Each says what you are taking on when it is off, because that is the half
+ * people don't think about until their notes have quietly gone stale.
+ */
+const ASSISTS = [
+  {
+    key: 'autoNotes',
+    label: 'Pencil marks',
+    on: 'Boards open with every square’s options already filled in. Costs 45 seconds.',
+    off: 'You pencil in your own notes, as on paper.',
+  },
+  {
+    key: 'autoClearNotes',
+    label: 'Tidy as I place',
+    on: 'A number rubs that grey note out of its row, column and box for you.',
+    off: 'Rubbing out is on you — the habit worth practising.',
+  },
+]
+
+export function AssistPanel({ prefs, onChange, onAutoNotes }) {
+  return (
+    <div className="panel panel-assist">
+      <h3>Assist</h3>
+      {ASSISTS.map(({ key, label, on, off }) => (
+        <div className="assist-row" key={key}>
+          <div>
+            <div className="a-label">{label}</div>
+            <div className="a-desc">{prefs[key] ? on : off}</div>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={prefs[key]}
+            aria-label={label}
+            className={`switch${prefs[key] ? ' on' : ''}`}
+            onClick={() =>
+              key === 'autoNotes'
+                ? onAutoNotes(!prefs.autoNotes)
+                : onChange({ ...prefs, [key]: !prefs[key] })
+            }
+          />
+        </div>
+      ))}
+    </div>
+  )
+}
+
 export function Keypad({
   game,
   mode,
@@ -135,6 +186,11 @@ export default memo(function SidePanel(props) {
     <div className="side">
       <ModeSwitch mode={props.mode} onMode={props.onMode} />
       <Keypad {...props} />
+      <AssistPanel
+        prefs={props.prefs}
+        onChange={props.onPrefs}
+        onAutoNotes={props.onAutoNotes}
+      />
     </div>
   )
 })

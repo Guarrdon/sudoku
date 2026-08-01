@@ -40,6 +40,11 @@ const AUTO_NOTES_NOTICE = {
   body: `Every empty square now shows the digits its row, column and box still allow — read off the printed numbers, nothing cleverer. Any square that came out with a single option has been written in. Squares that only became obvious because of those are left standing: they are the easiest points on the board and they are yours. ${AUTO_NOTES_PENALTY} seconds have been added to the clock.`,
 }
 
+const AUTO_NOTES_LATER = {
+  heading: 'Saved for your next board',
+  body: 'This puzzle is already under way, so its notes are left exactly as you have them — filling them in now would paint over your own work. Every new board from here will open pencilled in.',
+}
+
 const AUTO_NOTES_OFFER = {
   heading: 'Before a hint — want the bookkeeping done?',
   body: 'Nothing has been played on this board yet. Rather than one move, I can pencil every square in with the digits its row, column and box still allow, and write in any square that comes out with only one. No scanning and no tactics — just what the printed numbers already say.',
@@ -379,6 +384,21 @@ export default function App() {
   }, [])
 
   /**
+   * Turning pencil marks on is worth acting on straight away rather than at the
+   * next puzzle - but only while the board is untouched, since the fill would
+   * otherwise write over notes you made yourself. Say which happened either way.
+   */
+  const setAutoNotes = useCallback(
+    (on) => {
+      updatePrefs({ ...prefs, autoNotes: on })
+      if (!on || !game || game.solvedAt || screen !== 'play') return
+      if (isPristine(game)) fillNotes()
+      else setNotice(AUTO_NOTES_LATER)
+    },
+    [prefs, game, screen, updatePrefs, fillNotes]
+  )
+
+  /**
    * Training is a detour, not a departure. The game state is left exactly where
    * it was - the clock stops, because `running` wants the play screen - so you
    * can go and look up a technique in the middle of a puzzle and come straight
@@ -539,6 +559,9 @@ export default function App() {
           <SidePanel
             game={game}
             mode={game.mode}
+            prefs={prefs}
+            onPrefs={updatePrefs}
+            onAutoNotes={setAutoNotes}
             disabled={paused || !!game.solvedAt}
             onMode={(mode) => act({ type: 'mode', mode })}
             armed={armed}
@@ -575,7 +598,15 @@ export default function App() {
       )}
       {dialog === 'help' && <HelpDialog onClose={() => setDialog(null)} />}
       {dialog === 'settings' && (
-        <SettingsDialog prefs={prefs} onChange={updatePrefs} onClose={() => setDialog(null)} />
+        <SettingsDialog
+          prefs={prefs}
+          // Pencil marks act on the board you are holding, so this one switch
+          // has to behave the same whichever place you flip it from.
+          onChange={(next) =>
+            next.autoNotes !== prefs.autoNotes ? setAutoNotes(next.autoNotes) : updatePrefs(next)
+          }
+          onClose={() => setDialog(null)}
+        />
       )}
       {dialog === 'win' && game && (
         <WinDialog

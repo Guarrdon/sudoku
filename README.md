@@ -76,17 +76,32 @@ underneath it, and a small corner mark shows when that's happened. Take the numb
 and every note is exactly where you left it. Erase works the same way: the first press
 lifts the number, a second clears the notes.
 
-### Skipping the opening bookkeeping
+### How much the game does for you
+
+Two switches sit under the keypad, beside the board rather than behind a settings window,
+because they're part of how you're choosing to play *this* puzzle and worth changing
+mid-solve once you want the practice.
+
+| | on | off |
+| --- | --- | --- |
+| **Pencil marks** | Boards open with every square's options already filled in | You pencil in your own notes, as on paper |
+| **Tidy as I place** | A number rubs that grey note out of its row, column and box for you | Rubbing out is on you |
+
+Neither is required to play, and turning both off is the full paper experience. Green and
+red notes are never touched by either one — those you set deliberately, so the game leaves
+them alone.
+
+#### Pencil marks
 
 Pencilling every square in at the start of a hard puzzle is the least interesting part of
 Sudoku, and it's the part that puts people off practising the strategies that come after
 it. So it can be done for you, for a price.
 
-Turn on **Fill in my notes to start** in Settings and every new puzzle opens with the
-pencil marks already in. Or leave it off and press **Hint** on a board you haven't touched
-yet — a fresh board is one place where the notes are a more useful answer to "help me"
-than a single move, so it offers that first, with **Just hint me** if you'd rather have the
-move.
+Flip the switch and it fills the board in front of you, if you haven't played on it yet;
+otherwise it waits for your next board, rather than painting over notes you made yourself.
+There's a third way in: press **Hint** on a board you haven't touched, and it offers this
+first — a fresh board is one place where the notes answer "help me" better than a single
+move does — with **Just hint me** beside it.
 
 What it does is deliberately dim. It reads the numbers printed on the board and nothing
 else: for each empty square, which digits its row, column and box still allow. No scanning,
@@ -104,7 +119,15 @@ mind, though the 45 seconds are spent either way.
 
 How much you're given depends entirely on the board — an Easy puzzle might have ten squares
 written in, a Master one usually none at all, because a board that hard has no square down
-to one option until you've done some real work on it.
+to one option until you've done some real work on it. So it can't shortcut the puzzles you
+would actually want the practice on.
+
+#### Tidy as I place
+
+With this on, writing a number in rubs that digit's grey note out of everything the square
+can see. It's convenient, and it's also a chore the game is doing for you — keeping your
+own notes straight is a real part of solving on paper, and the part that catches you out
+when it goes stale. Turn it off and the rubbing out is yours.
 
 ### Checking your work
 
