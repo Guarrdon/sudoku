@@ -14,7 +14,7 @@ import {
   StatsDialog,
   WinDialog,
 } from './components/Dialogs.jsx'
-import { createGame, isSolved, reducer, MODES } from './lib/game.js'
+import { AUTO_NOTES_PENALTY, createGame, isPristine, isSolved, reducer, MODES } from './lib/game.js'
 import { findHint, hintText } from './lib/hint.js'
 import { difficultyById } from './lib/generator.js'
 import {
@@ -35,6 +35,16 @@ import {
 
 const MODE_KEYS = { v: 'value', n: 'note', g: 'yes', r: 'no' }
 
+const AUTO_NOTES_NOTICE = {
+  heading: 'Notes filled in',
+  body: `Every empty square now shows the digits its row, column and box still allow — read off the printed numbers, nothing cleverer. Any square that came out with a single option has been written in. Squares that only became obvious because of those are left standing: they are the easiest points on the board and they are yours. ${AUTO_NOTES_PENALTY} seconds have been added to the clock.`,
+}
+
+const AUTO_NOTES_OFFER = {
+  heading: 'Before a hint — want the bookkeeping done?',
+  body: 'Nothing has been played on this board yet. Rather than one move, I can pencil every square in with the digits its row, column and box still allow, and write in any square that comes out with only one. No scanning and no tactics — just what the printed numbers already say.',
+}
+
 export default function App() {
   const [screen, setScreen] = useState('menu') // menu | preview | play | training
   const [cameFrom, setCameFrom] = useState('menu') // where training should hand back to
@@ -48,7 +58,8 @@ export default function App() {
   const [paused, setPaused] = useState(false)
   const [justPlaced, setJustPlaced] = useState(null)
   const [savedGame, setSavedGame] = useState(() => loadSave())
-  const [hint, setHint] = useState(null) // { levels, level }
+  const [hint, setHint] = useState(null) // { levels, level } | { offer: true }
+  const [notice, setNotice] = useState(null) // { heading, body } - said once, then dismissed
   const [armed, setArmed] = useState(null) // number-first: the digit on the brush
 
   const inputOrder = resolveInputOrder(prefs)
@@ -95,7 +106,13 @@ export default function App() {
   const startGame = useCallback(() => {
     if (!gen.result) return
     dispatch({ type: 'restore', state: createGame(gen.result) })
-    setElapsed(0)
+    if (prefs.autoNotes) {
+      dispatch({ type: 'annotate' })
+      setNotice(AUTO_NOTES_NOTICE)
+    }
+    // The leg-up is paid for up front rather than deducted at the end, so the
+    // clock you are watching is always the true cost of the solve.
+    setElapsed(prefs.autoNotes ? AUTO_NOTES_PENALTY : 0)
     setPaused(false)
     setArmed(null)
     setScreen('play')
@@ -105,7 +122,7 @@ export default function App() {
       saveStats(next)
       return next
     })
-  }, [gen.result, prefs.recordStats])
+  }, [gen.result, prefs.recordStats, prefs.autoNotes])
 
   useEffect(() => {
     if (screen !== 'play' || !game || game.solvedAt) return
@@ -168,6 +185,7 @@ export default function App() {
     dispatch({ type: 'restore', state: restored })
     setElapsed(s.elapsed || 0)
     setPaused(false)
+    setNotice(null)
     setScreen('play')
   }, [savedGame])
 
@@ -180,6 +198,7 @@ export default function App() {
       })
     }
     setDialog(null)
+    setNotice(null)
     setScreen('menu')
     setSavedGame(loadSave())
   }, [game, prefs.recordStats])
@@ -198,6 +217,7 @@ export default function App() {
       if (!game || paused || game.solvedAt) return
       const target = index ?? game.selected
       const mode = modeOverride || game.mode
+      setNotice(null) // you have started; the opening note has served its purpose
       if (mode === 'value' && target != null && !game.givens[target]) {
         setJustPlaced(target)
         setTimeout(() => setJustPlaced(null), 220)
@@ -221,12 +241,29 @@ export default function App() {
     [game, paused, inputOrder, onDigit]
   )
 
-  const requestHint = useCallback(() => {
-    if (!game || paused || game.solvedAt) return
+  const showHint = useCallback(() => {
     const found = findHint(game)
     setHint({ levels: hintText(found), level: 0 })
     dispatch({ type: 'hintUsed' })
-  }, [game, paused])
+  }, [game])
+
+  /**
+   * On a board nothing has been played on, "help me" is more usefully answered
+   * with the notes than with a single move - so offer that first. One move on an
+   * empty board only postpones the same question.
+   */
+  const requestHint = useCallback(() => {
+    if (!game || paused || game.solvedAt) return
+    if (!prefs.autoNotes && isPristine(game)) setHint({ offer: true })
+    else showHint()
+  }, [game, paused, prefs.autoNotes, showHint])
+
+  const fillNotes = useCallback(() => {
+    dispatch({ type: 'annotate' })
+    setElapsed((e) => e + AUTO_NOTES_PENALTY)
+    setHint(null)
+    setNotice(AUTO_NOTES_NOTICE)
+  }, [])
 
   // The brush is meaningless outside number-first play, or once the grid is done.
   useEffect(() => {
@@ -357,7 +394,8 @@ export default function App() {
     setScreen(cameFrom === 'preview' && !gen.result ? 'menu' : cameFrom)
   }, [cameFrom, gen.result])
 
-  const hintLevel = hint ? hint.levels[Math.min(hint.level, hint.levels.length - 1)] : null
+  // The offer carries no levels and highlights nothing on the board.
+  const hintLevel = hint?.levels ? hint.levels[Math.min(hint.level, hint.levels.length - 1)] : null
   const band = game ? difficultyById(game.meta.difficulty) : null
   const modeLabel = useMemo(() => MODES.find((m) => m.id === game?.mode)?.label, [game?.mode])
 
@@ -476,13 +514,26 @@ export default function App() {
               }}
               onResume={() => setPaused(false)}
             />
-            {hint && !paused && (
+            {hint?.offer && !paused && (
+              <HintBar
+                levels={[AUTO_NOTES_OFFER]}
+                level={0}
+                actionLabel={`Fill them in (+${formatTime(AUTO_NOTES_PENALTY)})`}
+                onAction={fillNotes}
+                closeLabel="Just hint me"
+                onClose={showHint}
+              />
+            )}
+            {hint?.levels && !paused && (
               <HintBar
                 levels={hint.levels}
                 level={hint.level}
                 onMore={() => setHint((h) => ({ ...h, level: h.level + 1 }))}
                 onClose={() => setHint(null)}
               />
+            )}
+            {notice && !hint && !paused && (
+              <HintBar levels={[notice]} level={0} onClose={() => setNotice(null)} />
             )}
           </div>
           <SidePanel

@@ -218,5 +218,48 @@ let g8 = reducer(createGame(data), { type: 'select', index: 0 })
 g8 = reducer(g8, { type: 'move', dr: -1, dc: -1 })
 check('arrow movement clamps at the corner', g8.selected === 0)
 
+// ------------------------------------------------- opening notes (auto-fill)
+// This writes real answers onto the board, so it has to be right every time and
+// on every board - not just the one this file happens to generate.
+for (const band of ['easy', 'medium', 'hard', 'expert', 'master']) {
+  const d = generatePuzzle(band)
+  const start = createGame(d)
+  const a = reducer(start, { type: 'annotate' })
+  const placed = a.values.filter((v, i) => v && !a.givens[i])
+
+  check(`${band}: never writes in a wrong answer`,
+    a.values.every((v, i) => !v || v === d.solution[i]), `${placed.length} squares written in`)
+  check(`${band}: leaves the givens alone`, a.givens.every((v, i) => !v || a.values[i] === v))
+
+  // Notes must be the honest reading of the board: every digit no peer holds,
+  // and nothing else. Dropping the true digit would make the board unsolvable.
+  const honest = a.values.every((v, i) => {
+    if (v) return true
+    const taken = new Set(PEERS[i].map((p) => a.values[p]).filter(Boolean))
+    const marks = a.notes[i].map((n, dd) => (n === NOTE_PLAIN ? dd : 0)).filter(Boolean)
+    const other = a.notes[i].some((n) => n !== NOTE_OFF && n !== NOTE_PLAIN)
+    return !other && marks.includes(d.solution[i]) && marks.every((m) => !taken.has(m))
+  })
+  check(`${band}: every note is exactly what the board allows`, honest)
+
+  // A square left with one note is one it did NOT take - the point is to leave
+  // the easy wins. Any such square must still be a legitimate one.
+  const leftovers = a.values.reduce((n, v, i) =>
+    n + (!v && a.notes[i].filter((x) => x === NOTE_PLAIN).length === 1 ? 1 : 0), 0)
+  check(`${band}: single-note squares left standing are correct`,
+    a.values.every((v, i) => v || a.notes[i].filter((x) => x === NOTE_PLAIN).length !== 1 ||
+      a.notes[i][d.solution[i]] === NOTE_PLAIN), `${leftovers} left for the player`)
+}
+
+// it is a one-time leg-up, not a repeatable one
+let g9 = reducer(createGame(data), { type: 'annotate' })
+check('annotating is undoable', g9.past.length === 1)
+const twice = reducer(g9, { type: 'annotate' })
+check('it will not run twice', twice === g9)
+let g10 = reducer(createGame(data), { type: 'select', index: blank })
+g10 = reducer(g10, { type: 'digit', digit: 3, prefs })
+check('it refuses once you have played', reducer(g10, { type: 'annotate' }) === g10)
+check('undo puts the board back as it was', reducer(g9, { type: 'undo' }).values.join('') === data.puzzle.join(''))
+
 console.log(fail === 0 ? '\nAll game-logic checks passed.' : `\n${fail} FAILURES`)
 process.exit(fail ? 1 : 0)

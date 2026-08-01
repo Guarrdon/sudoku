@@ -76,6 +76,36 @@ underneath it, and a small corner mark shows when that's happened. Take the numb
 and every note is exactly where you left it. Erase works the same way: the first press
 lifts the number, a second clears the notes.
 
+### Skipping the opening bookkeeping
+
+Pencilling every square in at the start of a hard puzzle is the least interesting part of
+Sudoku, and it's the part that puts people off practising the strategies that come after
+it. So it can be done for you, for a price.
+
+Turn on **Fill in my notes to start** in Settings and every new puzzle opens with the
+pencil marks already in. Or leave it off and press **Hint** on a board you haven't touched
+yet — a fresh board is one place where the notes are a more useful answer to "help me"
+than a single move, so it offers that first, with **Just hint me** if you'd rather have the
+move.
+
+What it does is deliberately dim. It reads the numbers printed on the board and nothing
+else: for each empty square, which digits its row, column and box still allow. No scanning,
+no tactics, nothing from the strategies in Training. Where that leaves a square with a
+single digit, there's nothing left to work out, so it's written in as a blue answer.
+
+It runs **one pass only**. Squares that became obvious *because* of what it just wrote in
+are left standing — you'll see them, single grey notes dotted about. Those are the easiest
+points on the board and they're yours to take. That is the habit this exists to practise.
+
+The cost is **45 seconds, added to the clock up front**, so the time you're watching is
+always the true cost of the solve. Nothing else is recorded: it doesn't count as a hint, and
+it can't break a clean-solve streak. `Ctrl`+`Z` undoes the whole thing if you change your
+mind, though the 45 seconds are spent either way.
+
+How much you're given depends entirely on the board — an Easy puzzle might have ten squares
+written in, a Master one usually none at all, because a board that hard has no square down
+to one option until you've done some real work on it.
+
 ### Checking your work
 
 **Check** marks any square you've filled in that doesn't match the solution. It's free and
@@ -251,7 +281,9 @@ npm test
 
 Because the rules live apart from the interface, they can be tested directly. The tests
 cover puzzle generation and rating, every input rule (including that notes survive a
-number being placed on top of them), and the hint engine — which they check by solving a
+number being placed on top of them), the opening auto-fill — which writes real answers onto
+the board, so it is checked against the solution on a freshly generated puzzle of every
+difficulty — and the hint engine — which they check by solving a
 puzzle of each difficulty using nothing but hints, verifying every suggested move against
 the real solution. The training lessons are checked the same way: every example is solved
 outright, and each lesson's claims are held up against the answer.

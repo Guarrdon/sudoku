@@ -131,6 +131,7 @@ const prefersNumberFirst = () => {
 export const defaultPrefs = {
   inputOrder: 'auto', // 'auto' | 'cell' | 'digit' - resolved by resolveInputOrder
   recordStats: true, // off = play freely without touching your record
+  autoNotes: false, // start each puzzle with the pencil marks already filled in
   autoClearNotes: true, // placing a digit clears matching plain notes from peers
   highlightPeers: true, // dim-highlight the row, column and box of the selection
   highlightMatches: true, // glow every cell holding the selected digit

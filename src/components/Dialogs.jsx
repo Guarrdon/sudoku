@@ -189,6 +189,7 @@ export function HelpDialog({ onClose }) {
 
 const TOGGLES = [
   ['recordStats', 'Record statistics', 'Turn this off to play without adding anything to your record — no games counted, no times, no streaks. Existing statistics are kept.'],
+  ['autoNotes', 'Fill in my notes to start', 'Skip the opening bookkeeping: every new puzzle begins with each square pencilled in with the digits its row, column and box still allow, and any square left with a single option written in. Nothing cleverer than reading the printed numbers. Costs 45 seconds on the clock.'],
   ['autoClearNotes', 'Tidy notes automatically', 'Placing a number removes that grey note from the row, column and box. Green and red notes are left alone.'],
   ['highlightPeers', 'Highlight row, column and box', 'Shades everything the selected square can see.'],
   ['highlightMatches', 'Highlight matching numbers', 'Every square holding the same number as the selection.'],
