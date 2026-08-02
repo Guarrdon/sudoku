@@ -374,7 +374,12 @@ function fish(grid, cand, size) {
           }
           if (!eliminations.length) return null
           return {
-            cells: combo.flatMap((u) => lines[u.l].filter((i) => union.has(crossOf(i)))),
+            // The pattern is the corners the digit can actually occupy - not
+            // every cell where a base line crosses a cover line. Filled squares
+            // and squares without the candidate are scaffolding, not the fish.
+            cells: combo.flatMap((u) =>
+              lines[u.l].filter((i) => union.has(crossOf(i)) && cand[i] & bit)
+            ),
             digits: [d],
             house: { type: lines === ROWS ? 'row' : 'column', index: combo[0].l },
             eliminations,

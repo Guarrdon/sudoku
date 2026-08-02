@@ -1,7 +1,8 @@
 # Sudoku
 
 Sudoku that runs entirely in your browser. Five difficulty levels, coloured pencil-mark
-notes, and a timer and statistics kept on your own device.
+notes, a timer and statistics kept on your own device, and a training section that teaches
+the strategies on boards set up to show them.
 
 ![An Expert puzzle part-solved: coloured notes, and a hint explaining the XY-Wing that unlocks the next number](docs/board.png)
 
@@ -75,6 +76,59 @@ underneath it, and a small corner mark shows when that's happened. Take the numb
 and every note is exactly where you left it. Erase works the same way: the first press
 lifts the number, a second clears the notes.
 
+### How much the game does for you
+
+Two switches sit under the keypad, beside the board rather than behind a settings window,
+because they're part of how you're choosing to play *this* puzzle and worth changing
+mid-solve once you want the practice.
+
+| | on | off |
+| --- | --- | --- |
+| **Pencil marks** | Boards open with every square's options already filled in | You pencil in your own notes, as on paper |
+| **Tidy as I place** | A number rubs that grey note out of its row, column and box for you | Rubbing out is on you |
+
+Neither is required to play, and turning both off is the full paper experience. Green and
+red notes are never touched by either one — those you set deliberately, so the game leaves
+them alone.
+
+#### Pencil marks
+
+Pencilling every square in at the start of a hard puzzle is the least interesting part of
+Sudoku, and it's the part that puts people off practising the strategies that come after
+it. So it can be done for you, for a price.
+
+Flip the switch and it fills the board in front of you, if you haven't played on it yet;
+otherwise it waits for your next board, rather than painting over notes you made yourself.
+There's a third way in: press **Hint** on a board you haven't touched, and it offers this
+first — a fresh board is one place where the notes answer "help me" better than a single
+move does — with **Just hint me** beside it.
+
+What it does is deliberately dim. It reads the numbers printed on the board and nothing
+else: for each empty square, which digits its row, column and box still allow. No scanning,
+no tactics, nothing from the strategies in Training. Where that leaves a square with a
+single digit, there's nothing left to work out, so it's written in as a blue answer.
+
+It runs **one pass only**. Squares that became obvious *because* of what it just wrote in
+are left standing — you'll see them, single grey notes dotted about. Those are the easiest
+points on the board and they're yours to take. That is the habit this exists to practise.
+
+The cost is **45 seconds, added to the clock up front**, so the time you're watching is
+always the true cost of the solve. Nothing else is recorded: it doesn't count as a hint, and
+it can't break a clean-solve streak. `Ctrl`+`Z` undoes the whole thing if you change your
+mind, though the 45 seconds are spent either way.
+
+How much you're given depends entirely on the board — an Easy puzzle might have ten squares
+written in, a Master one usually none at all, because a board that hard has no square down
+to one option until you've done some real work on it. So it can't shortcut the puzzles you
+would actually want the practice on.
+
+#### Tidy as I place
+
+With this on, writing a number in rubs that digit's grey note out of everything the square
+can see. It's convenient, and it's also a chore the game is doing for you — keeping your
+own notes straight is a real part of solving on paper, and the part that catches you out
+when it goes stale. Turn it off and the rubbing out is yours.
+
 ### Checking your work
 
 **Check** marks any square you've filled in that doesn't match the solution. It's free and
@@ -130,6 +184,38 @@ so first, because nothing else will work out until it's fixed.
 Hints never guess. They come from the same solver that rates the puzzles, and they don't
 read your notes — so wrong or missing notes can't send them astray.
 
+## Training
+
+**Training**, in the header, is where the strategies themselves are taught — twelve of
+them, from the first single up to the swordfish, in the order worth learning them in.
+
+Pick one and the board is set to a position where that strategy is the move, and then
+**everything the deduction does not rest on is dimmed out**. For a hidden single that
+leaves one house lit, plus the digits elsewhere on the board that do the blocking — the
+cross-hatch you would draw by eye. For a swordfish it leaves three rows and three
+columns, with only that one digit's candidates drawn and the rest of the board's notes
+hidden. What is left on screen is the whole argument and nothing else.
+
+Each lesson then walks through it in three steps, with the board revealing a little more
+as you go:
+
+1. **The position** — what is lit, and what question to ask of it
+2. **The pattern** — the squares the strategy is about, and the marks that make it
+3. **The deduction** — what it proves, with the notes it kills struck through in red
+
+Alongside sits the reasoning in full: what the strategy is, *why it holds* — the actual
+proof, not a rule to memorise — and how to go looking for it in your own game. Each
+strategy carries three different example boards, so you can see the same shape more than
+once. Arrow keys step through, and you can drop into training mid-puzzle and come back to
+your game exactly as you left it, clock paused.
+
+The positions are not mock-ups. Each lesson stores a real puzzle, and the app replays it
+through the same solver that rates puzzles and gives hints, stopping at the move — so
+what you are shown is a position a player would actually reach. The test suite solves
+every example outright and checks that what each lesson claims is true: that nothing it
+rules out is the right answer, that no square the argument needs has been dimmed, and
+that every candidate on screen is honest.
+
 ### Starting over
 
 **Start over**, beside the board, offers two choices:
@@ -171,6 +257,24 @@ and statistics are stored locally, and clearing your browser data removes them.
 Games in progress are saved automatically, so you can close the tab and pick up where you
 left off.
 
+## Offline
+
+Open the game once and it stays on your device. After that it plays with no network at all
+— on a plane, in a tunnel, with the wifi off. Nothing about the game changes; a small
+"Offline" chip appears in the corner so you know it noticed, and that is all.
+
+Visiting [lhstart.com](https://lhstart.com) is enough on its own. The shelf saves the whole
+game as soon as it loads, without your opening it, because at 369 kB it is smaller than its
+own cover picture. The tile says **Ready offline** once that has happened.
+
+On a phone you can add it to the home screen and it runs as its own app, with its own icon
+and no browser around it. Your statistics live in the browser's storage, and iOS has
+historically kept a home screen app's storage separate from Safari's — so if you install it
+and your streak looks reset, that is why, and the two go on keeping separate scores.
+
+Updates arrive quietly. A new version downloads in the background and takes over the next
+time you launch the game, so a puzzle in progress is never disturbed.
+
 ## Keys
 
 Everything is reachable with the mouse; these just make it faster.
@@ -204,10 +308,20 @@ src/
     worker.js      generation, kept off the main thread
     game.js        the rules of play, with no React in them
     hint.js        finds the next move and explains it in stages
+    training.js    replays a puzzle to a teaching position, and explains it
+    lessons.js     the example puzzles, found by scripts/find-lessons.mjs
     storage.js     saved games, statistics and settings
-  components/      Board, SidePanel, HintBar, StartScreen, Preview, Dialogs
-test/              checks for the solver, generator, rules and hints
+  components/      Board, TrainingBoard, SidePanel, HintBar, StartScreen, Preview,
+                   Training, Dialogs
+public/            manifest and icons, copied to the build as-is
+test/              checks for the solver, generator, rules, hints and training
 ```
+
+`vite.config.js` carries a small plugin that writes `dist/offline.json` — the list of files
+the build produced and a hash of their contents. The portal's service worker reads it to
+know what to keep on the device and when a redeploy has replaced it; the portal cannot work
+that out for itself, because the filenames are fingerprinted here at build time. The
+offline contract is written up in the [lhstart README](https://github.com/Guarrdon/lhstart).
 
 ```bash
 npm test
@@ -215,9 +329,16 @@ npm test
 
 Because the rules live apart from the interface, they can be tested directly. The tests
 cover puzzle generation and rating, every input rule (including that notes survive a
-number being placed on top of them), and the hint engine — which they check by solving a
+number being placed on top of them), the opening auto-fill — which writes real answers onto
+the board, so it is checked against the solution on a freshly generated puzzle of every
+difficulty — and the hint engine — which they check by solving a
 puzzle of each difficulty using nothing but hints, verifying every suggested move against
-the real solution.
+the real solution. The training lessons are checked the same way: every example is solved
+outright, and each lesson's claims are held up against the answer.
+
+The example positions are searched for by `node scripts/find-lessons.mjs`, which generates
+puzzles until it has clear examples of all twelve techniques and rewrites `src/lib/lessons.js`.
+It only needs re-running if you want different examples.
 
 ## Licence
 

@@ -10,10 +10,26 @@
       rel="icon"
       href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23fffdf8'/%3E%3Cg stroke='%233a352b' stroke-width='2'%3E%3Crect x='4' y='4' width='24' height='24' rx='2' fill='none'/%3E%3Cpath d='M12 4v24M20 4v24M4 12h24M4 20h24' stroke-width='1.4'/%3E%3C/g%3E%3Ctext x='8' y='11.5' font-family='Georgia,serif' font-size='7' font-weight='bold' fill='%232f5fa8'%3E5%3C/text%3E%3Ctext x='16' y='19.5' font-family='Georgia,serif' font-size='7' font-weight='bold' fill='%232a2620'%3E3%3C/text%3E%3Ctext x='24' y='27.5' font-family='Georgia,serif' font-size='7' font-weight='bold' fill='%232f5fa8'%3E7%3C/text%3E%3C/svg%3E"
     />
+    <!-- Installed to a home screen, this is its own app: its own icon, its own
+         window, and a scope that stops at this folder. -->
+    <link rel="apple-touch-icon" href="./icons/sudoku-apple-touch.png" />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <meta name="theme-color" content="#fffdf8" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Sudoku" />
     <title>Sudoku</title>
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
+    <!-- The way back to the portal. Served from the portal's origin, so this
+         is a no-op on a local dev server. Escape stays ours - it closes the
+         dialogs. -->
+    <script src="/shared/exit-to-portal.js" defer></script>
+    <!-- Registers the portal's service worker and asks it to keep this game on
+         the device, so it plays with no network. Also puts an "Offline" chip in
+         the corner while there is none. Same origin, same no-op on a dev
+         server. -->
+    <script src="/shared/offline.js" defer></script>
   </body>
 </html>

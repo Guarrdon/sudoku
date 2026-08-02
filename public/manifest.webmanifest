@@ -1,0 +1,22 @@
+{
+  "name": "Sudoku",
+  "short_name": "Sudoku",
+  "description": "Sudoku in your browser. Five difficulty levels, coloured notes, and statistics kept on your device.",
+  "id": "/games/sudoku/",
+  "start_url": "./?lh=game",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#fffdf8",
+  "theme_color": "#fffdf8",
+  "icons": [
+    { "src": "icons/sudoku-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/sudoku-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    {
+      "src": "icons/sudoku-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

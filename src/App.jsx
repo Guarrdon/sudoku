@@ -4,6 +4,7 @@ import SidePanel from './components/SidePanel.jsx'
 import HintBar from './components/HintBar.jsx'
 import StartScreen from './components/StartScreen.jsx'
 import Preview from './components/Preview.jsx'
+import Training from './components/Training.jsx'
 import {
   ConfirmDialog,
   HelpDialog,
@@ -13,7 +14,7 @@ import {
   StatsDialog,
   WinDialog,
 } from './components/Dialogs.jsx'
-import { createGame, isSolved, reducer, MODES } from './lib/game.js'
+import { AUTO_NOTES_PENALTY, createGame, isPristine, isSolved, reducer, MODES } from './lib/game.js'
 import { findHint, hintText } from './lib/hint.js'
 import { difficultyById } from './lib/generator.js'
 import {
@@ -34,8 +35,24 @@ import {
 
 const MODE_KEYS = { v: 'value', n: 'note', g: 'yes', r: 'no' }
 
+const AUTO_NOTES_NOTICE = {
+  heading: 'Notes filled in',
+  body: `Every empty square now shows the digits its row, column and box still allow — read off the printed numbers, nothing cleverer. Any square that came out with a single option has been written in. Squares that only became obvious because of those are left standing: they are the easiest points on the board and they are yours. ${AUTO_NOTES_PENALTY} seconds have been added to the clock.`,
+}
+
+const AUTO_NOTES_LATER = {
+  heading: 'Saved for your next board',
+  body: 'This puzzle is already under way, so its notes are left exactly as you have them — filling them in now would paint over your own work. Every new board from here will open pencilled in.',
+}
+
+const AUTO_NOTES_OFFER = {
+  heading: 'Before a hint — want the bookkeeping done?',
+  body: 'Nothing has been played on this board yet. Rather than one move, I can pencil every square in with the digits its row, column and box still allow, and write in any square that comes out with only one. No scanning and no tactics — just what the printed numbers already say.',
+}
+
 export default function App() {
-  const [screen, setScreen] = useState('menu') // menu | preview | play
+  const [screen, setScreen] = useState('menu') // menu | preview | play | training
+  const [cameFrom, setCameFrom] = useState('menu') // where training should hand back to
   const [stats, setStats] = useState(loadStats)
   const [prefs, setPrefs] = useState(loadPrefs)
   const [dialog, setDialog] = useState(null) // stats | help | settings | win | quit
@@ -46,7 +63,8 @@ export default function App() {
   const [paused, setPaused] = useState(false)
   const [justPlaced, setJustPlaced] = useState(null)
   const [savedGame, setSavedGame] = useState(() => loadSave())
-  const [hint, setHint] = useState(null) // { levels, level }
+  const [hint, setHint] = useState(null) // { levels, level } | { offer: true }
+  const [notice, setNotice] = useState(null) // { heading, body } - said once, then dismissed
   const [armed, setArmed] = useState(null) // number-first: the digit on the brush
 
   const inputOrder = resolveInputOrder(prefs)
@@ -93,7 +111,13 @@ export default function App() {
   const startGame = useCallback(() => {
     if (!gen.result) return
     dispatch({ type: 'restore', state: createGame(gen.result) })
-    setElapsed(0)
+    if (prefs.autoNotes) {
+      dispatch({ type: 'annotate' })
+      setNotice(AUTO_NOTES_NOTICE)
+    }
+    // The leg-up is paid for up front rather than deducted at the end, so the
+    // clock you are watching is always the true cost of the solve.
+    setElapsed(prefs.autoNotes ? AUTO_NOTES_PENALTY : 0)
     setPaused(false)
     setArmed(null)
     setScreen('play')
@@ -103,7 +127,7 @@ export default function App() {
       saveStats(next)
       return next
     })
-  }, [gen.result, prefs.recordStats])
+  }, [gen.result, prefs.recordStats, prefs.autoNotes])
 
   useEffect(() => {
     if (screen !== 'play' || !game || game.solvedAt) return
@@ -166,6 +190,7 @@ export default function App() {
     dispatch({ type: 'restore', state: restored })
     setElapsed(s.elapsed || 0)
     setPaused(false)
+    setNotice(null)
     setScreen('play')
   }, [savedGame])
 
@@ -178,6 +203,7 @@ export default function App() {
       })
     }
     setDialog(null)
+    setNotice(null)
     setScreen('menu')
     setSavedGame(loadSave())
   }, [game, prefs.recordStats])
@@ -196,6 +222,7 @@ export default function App() {
       if (!game || paused || game.solvedAt) return
       const target = index ?? game.selected
       const mode = modeOverride || game.mode
+      setNotice(null) // you have started; the opening note has served its purpose
       if (mode === 'value' && target != null && !game.givens[target]) {
         setJustPlaced(target)
         setTimeout(() => setJustPlaced(null), 220)
@@ -219,12 +246,29 @@ export default function App() {
     [game, paused, inputOrder, onDigit]
   )
 
-  const requestHint = useCallback(() => {
-    if (!game || paused || game.solvedAt) return
+  const showHint = useCallback(() => {
     const found = findHint(game)
     setHint({ levels: hintText(found), level: 0 })
     dispatch({ type: 'hintUsed' })
-  }, [game, paused])
+  }, [game])
+
+  /**
+   * On a board nothing has been played on, "help me" is more usefully answered
+   * with the notes than with a single move - so offer that first. One move on an
+   * empty board only postpones the same question.
+   */
+  const requestHint = useCallback(() => {
+    if (!game || paused || game.solvedAt) return
+    if (!prefs.autoNotes && isPristine(game)) setHint({ offer: true })
+    else showHint()
+  }, [game, paused, prefs.autoNotes, showHint])
+
+  const fillNotes = useCallback(() => {
+    dispatch({ type: 'annotate' })
+    setElapsed((e) => e + AUTO_NOTES_PENALTY)
+    setHint(null)
+    setNotice(AUTO_NOTES_NOTICE)
+  }, [])
 
   // The brush is meaningless outside number-first play, or once the grid is done.
   useEffect(() => {
@@ -339,7 +383,39 @@ export default function App() {
     savePrefs(next)
   }, [])
 
-  const hintLevel = hint ? hint.levels[Math.min(hint.level, hint.levels.length - 1)] : null
+  /**
+   * Turning pencil marks on is worth acting on straight away rather than at the
+   * next puzzle - but only while the board is untouched, since the fill would
+   * otherwise write over notes you made yourself. Say which happened either way.
+   */
+  const setAutoNotes = useCallback(
+    (on) => {
+      updatePrefs({ ...prefs, autoNotes: on })
+      if (!on || !game || game.solvedAt || screen !== 'play') return
+      if (isPristine(game)) fillNotes()
+      else setNotice(AUTO_NOTES_LATER)
+    },
+    [prefs, game, screen, updatePrefs, fillNotes]
+  )
+
+  /**
+   * Training is a detour, not a departure. The game state is left exactly where
+   * it was - the clock stops, because `running` wants the play screen - so you
+   * can go and look up a technique in the middle of a puzzle and come straight
+   * back to it.
+   */
+  const openTraining = useCallback(() => {
+    setDialog(null)
+    if (screen !== 'training') setCameFrom(screen)
+    setScreen('training')
+  }, [screen])
+
+  const leaveTraining = useCallback(() => {
+    setScreen(cameFrom === 'preview' && !gen.result ? 'menu' : cameFrom)
+  }, [cameFrom, gen.result])
+
+  // The offer carries no levels and highlights nothing on the board.
+  const hintLevel = hint?.levels ? hint.levels[Math.min(hint.level, hint.levels.length - 1)] : null
   const band = game ? difficultyById(game.meta.difficulty) : null
   const modeLabel = useMemo(() => MODES.find((m) => m.id === game?.mode)?.label, [game?.mode])
 
@@ -374,6 +450,13 @@ export default function App() {
               Not recording
             </span>
           )}
+          <button
+            type="button"
+            className={`btn small only-wide${screen === 'training' ? ' primary' : ' ghost'}`}
+            onClick={screen === 'training' ? leaveTraining : openTraining}
+          >
+            {screen === 'training' ? 'Leave training' : 'Training'}
+          </button>
           <button type="button" className="btn ghost small only-wide" onClick={() => setDialog('stats')}>
             Stats
           </button>
@@ -413,8 +496,11 @@ export default function App() {
             clearSave()
             setSavedGame(null)
           }}
+          onTrain={openTraining}
         />
       )}
+
+      {screen === 'training' && <Training onExit={leaveTraining} />}
 
       {screen === 'preview' && (
         <Preview
@@ -448,7 +534,17 @@ export default function App() {
               }}
               onResume={() => setPaused(false)}
             />
-            {hint && !paused && (
+            {hint?.offer && !paused && (
+              <HintBar
+                levels={[AUTO_NOTES_OFFER]}
+                level={0}
+                actionLabel={`Fill them in (+${formatTime(AUTO_NOTES_PENALTY)})`}
+                onAction={fillNotes}
+                closeLabel="Just hint me"
+                onClose={showHint}
+              />
+            )}
+            {hint?.levels && !paused && (
               <HintBar
                 levels={hint.levels}
                 level={hint.level}
@@ -456,10 +552,16 @@ export default function App() {
                 onClose={() => setHint(null)}
               />
             )}
+            {notice && !hint && !paused && (
+              <HintBar levels={[notice]} level={0} onClose={() => setNotice(null)} />
+            )}
           </div>
           <SidePanel
             game={game}
             mode={game.mode}
+            prefs={prefs}
+            onPrefs={updatePrefs}
+            onAutoNotes={setAutoNotes}
             disabled={paused || !!game.solvedAt}
             onMode={(mode) => act({ type: 'mode', mode })}
             armed={armed}
@@ -496,7 +598,15 @@ export default function App() {
       )}
       {dialog === 'help' && <HelpDialog onClose={() => setDialog(null)} />}
       {dialog === 'settings' && (
-        <SettingsDialog prefs={prefs} onChange={updatePrefs} onClose={() => setDialog(null)} />
+        <SettingsDialog
+          prefs={prefs}
+          // Pencil marks act on the board you are holding, so this one switch
+          // has to behave the same whichever place you flip it from.
+          onChange={(next) =>
+            next.autoNotes !== prefs.autoNotes ? setAutoNotes(next.autoNotes) : updatePrefs(next)
+          }
+          onClose={() => setDialog(null)}
+        />
       )}
       {dialog === 'win' && game && (
         <WinDialog
@@ -510,8 +620,14 @@ export default function App() {
       {dialog === 'menu' && (
         <MenuDialog
           inGame={screen === 'play'}
+          inTraining={screen === 'training'}
           onPick={(what) => {
-            if (what === 'new') {
+            if (what === 'training') {
+              openTraining()
+            } else if (what === 'leave-training') {
+              setDialog(null)
+              leaveTraining()
+            } else if (what === 'new') {
               setDialog(null)
               if (game?.solvedAt || screen !== 'play') abandonToMenu()
               else setDialog('quit')

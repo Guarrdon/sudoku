@@ -6,7 +6,8 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "node test/engine.test.js && node test/game.test.js && node test/hint.test.js"
+    "deploy": "./scripts/deploy.sh",
+    "test": "node test/engine.test.js && node test/game.test.js && node test/hint.test.js && node test/training.test.js"
   },
   "type": "module",
   "dependencies": {

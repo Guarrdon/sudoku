@@ -2,6 +2,10 @@
 // tested) on its own.
 
 import { CELLS, PEERS, rowOf, colOf, idx, conflictsAt } from './grid.js'
+import { buildCandidates, digitsOf } from './solver.js'
+
+/** Seconds added to the clock for starting with the notes filled in. */
+export const AUTO_NOTES_PENALTY = 45
 
 /** Note states. A note cycles off -> maybe -> yes -> no -> off in Note mode. */
 export const NOTE_OFF = 0
@@ -201,6 +205,55 @@ export const hasUserAnswers = (state) => state.values.some((v, i) => v && !state
 /** Are there any notes anywhere, including ones hidden under a number? */
 export const hasAnyNotes = (state) => state.notes.some((cell) => cell.some((n) => n !== NOTE_OFF))
 
+/** Nothing has been played yet - no numbers of your own, no notes anywhere. */
+export const isPristine = (state) => !hasUserAnswers(state) && !hasAnyNotes(state)
+
+/**
+ * The opening chore, done for you: for every empty square, pencil in the digits
+ * its row, column and box still allow. That is the whole of the reasoning - it
+ * reads the numbers printed on the board and nothing else. No scanning, no
+ * chains, no looking at where a digit could go across a house.
+ *
+ * Where that leaves a square with a single digit, there is nothing left to work
+ * out, so it is written in as an answer.
+ *
+ * It runs ONE pass. Squares that only became obvious because of what this just
+ * placed are deliberately left standing - they are the easiest points on the
+ * board, and taking them is the habit this is meant to be practice for.
+ *
+ * Only ever runs on an untouched board, so it can never overwrite your own work.
+ */
+function annotate(state) {
+  if (!isPristine(state)) return state
+
+  const values = state.values.slice()
+  // Every square left with one option is forced by the givens alone, so the
+  // answers found here cannot contradict each other, and none needs the others.
+  for (const [i, mask] of buildCandidates(values).entries()) {
+    if (values[i] || mask === 0) continue
+    const digits = digitsOf(mask)
+    if (digits.length === 1) values[i] = digits[0]
+  }
+
+  // Pencil in from the board as it now stands, so no note left behind can
+  // disagree with a number this has just written in.
+  const settled = buildCandidates(values)
+  const notes = state.notes.slice()
+  for (let i = 0; i < CELLS; i++) {
+    if (values[i]) continue
+    const cell = new Array(10).fill(NOTE_OFF)
+    for (const d of digitsOf(settled[i])) cell[d] = NOTE_PLAIN
+    notes[i] = cell
+  }
+
+  // The square you were parked on may well have just been answered. Move to the
+  // first one still open, or the board greets you highlighting its own work.
+  const stillOpen = values.findIndex((v) => !v)
+  const selected = values[state.selected] && stillOpen !== -1 ? stillOpen : state.selected
+
+  return { ...state, ...pushHistory(state), values, notes, selected }
+}
+
 export function remainingCounts(state) {
   const counts = new Array(10).fill(9)
   for (let i = 0; i < CELLS; i++) if (state.values[i]) counts[state.values[i]]--
@@ -242,6 +295,9 @@ export function reducer(state, action) {
       // the thumb even when the digit came first.
       return next === state ? { ...state, selected: index } : { ...next, selected: index }
     }
+
+    case 'annotate':
+      return state.solvedAt ? state : annotate(state)
 
     case 'erase':
       return state.selected == null || state.solvedAt ? state : erase(state, state.selected)

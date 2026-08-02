@@ -1423,6 +1423,52 @@ kbd {
   transform: translateX(19px);
 }
 
+/* ------------------------------------------------------------------ assist */
+.assist-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0 0;
+  margin-top: 10px;
+  border-top: 1px solid var(--rule);
+}
+
+.assist-row:first-of-type {
+  padding-top: 0;
+  margin-top: 0;
+  border-top: 0;
+}
+
+.assist-row .a-label {
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+.assist-row .a-desc {
+  font-size: 11.5px;
+  color: var(--ink-faint);
+  margin-top: 2px;
+  line-height: 1.4;
+}
+
+/* A shade smaller than the one in Settings - this one lives beside the board
+   and should not compete with the keypad for attention. */
+.panel-assist .switch {
+  width: 38px;
+  height: 22px;
+  margin-top: 1px;
+}
+
+.panel-assist .switch::after {
+  width: 16px;
+  height: 16px;
+}
+
+.panel-assist .switch.on::after {
+  transform: translateX(16px);
+}
+
 /* ------------------------------------------------------------------- pause */
 .paused-veil {
   position: absolute;
@@ -1451,6 +1497,362 @@ kbd {
   text-align: center;
   margin-top: 4px;
   line-height: 1.6;
+}
+
+/* ---------------------------------------------------------------- training */
+.training {
+  width: 100%;
+  max-width: 1040px;
+  animation: rise 0.34s cubic-bezier(0.2, 0.8, 0.3, 1) both;
+}
+
+.training-hero {
+  margin-bottom: 20px;
+}
+
+.training-hero p {
+  max-width: 620px;
+  margin: 0 auto;
+}
+
+/* The teaching board is read-only: no hover, no selection, nothing to press. */
+.tgrid {
+  pointer-events: none;
+}
+
+/* Turned right down, but not gone: you can still see the board is a board, and
+   that the argument is happening somewhere inside a real puzzle. */
+.tgrid .cell.dim {
+  background: #efebe0;
+}
+
+.tgrid .cell.dim .val {
+  opacity: 0.16;
+}
+
+/* The pattern itself - the squares the deduction is about. */
+.tgrid .cell.pat {
+  background: #e4f1ea;
+  outline: 2px solid #4f9c78;
+  outline-offset: -2px;
+  z-index: 3;
+}
+
+/* The pivot of an XY-Wing does a different job from its wings, and the whole
+   deduction turns on telling them apart. */
+.tgrid .cell.pat.pivot {
+  background: var(--sel);
+  outline: 3px solid var(--gold);
+  outline-offset: -3px;
+}
+
+/* Squares this move takes something away from. A hidden subset cuts notes from
+   its own pattern squares, and there the pattern is the more useful thing to
+   see - the struck marks inside already say what was lost. */
+.tgrid .cell.cut:not(.pat) {
+  background: var(--no-soft);
+  outline: 1.5px dashed rgba(176, 57, 47, 0.55);
+  outline-offset: -1.5px;
+  z-index: 2;
+}
+
+.tgrid .cell.place {
+  background: #cfe9dc;
+  outline: 3px solid var(--yes);
+  outline-offset: -3px;
+  z-index: 4;
+}
+
+.tcell .val.solved-in {
+  color: var(--yes);
+  font-weight: 700;
+  animation: pop-in 0.24s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Candidate marks. Same 3x3 geometry as the player's own notes, so what you
+   learn here you can read straight off your own board. */
+.tnote {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: calc(var(--cell) * 0.235);
+  font-weight: 600;
+  line-height: 1;
+  border-radius: 3px;
+  color: var(--ink-faint);
+  opacity: 0.75;
+}
+
+.tnote.hot {
+  color: var(--yes);
+  background: var(--yes-soft);
+  font-weight: 800;
+  opacity: 1;
+}
+
+.tnote.gone {
+  color: var(--no);
+  font-weight: 700;
+  opacity: 1;
+  text-decoration: line-through;
+  text-decoration-thickness: 1.5px;
+  animation: strike 0.3s ease-out;
+}
+
+@keyframes strike {
+  from {
+    transform: scale(1.5);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+/* One digit under discussion: its marks go big and centred, because the shape
+   they make across the board IS the pattern being taught. */
+.solo {
+  font-family: var(--font-num);
+  font-size: calc(var(--cell) * 0.42);
+  line-height: 1;
+  font-weight: 600;
+  color: var(--ink-faint);
+  opacity: 0.6;
+}
+
+.solo.hot {
+  color: var(--yes);
+  opacity: 1;
+  font-weight: 700;
+}
+
+.solo.gone {
+  color: var(--no);
+  opacity: 1;
+  font-weight: 700;
+  text-decoration: line-through;
+  text-decoration-thickness: 2px;
+  animation: strike 0.3s ease-out;
+}
+
+/* ------------------------------------------------------------- walkthrough */
+.walk {
+  width: 100%;
+  max-width: 640px;
+  padding: 15px 17px;
+  border-radius: var(--r-lg);
+  border: 1px solid #b8d8c7;
+  background: linear-gradient(180deg, #f2faf5, #e6f3ec);
+  box-shadow: var(--lift-2);
+}
+
+.walk-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.walk-step {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--yes);
+  white-space: nowrap;
+}
+
+.walk-title {
+  font-family: var(--font-num);
+  font-size: 19px;
+  font-weight: 600;
+}
+
+.walk-body {
+  margin: 0;
+  font-size: 14.5px;
+  line-height: 1.6;
+  /* Three beats of very different length must not make the card jump about. */
+  min-height: 4.8em;
+}
+
+.walk-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.walk-dots {
+  display: flex;
+  gap: 5px;
+}
+
+.wdot {
+  width: 22px;
+  height: 4px;
+  padding: 0;
+  border: 0;
+  border-radius: 2px;
+  background: #c4ddd0;
+  pointer-events: auto;
+}
+
+.wdot.on {
+  background: var(--yes);
+}
+
+.walk-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* ------------------------------------------------------------------ essay */
+.essay {
+  width: 100%;
+  max-width: 640px;
+  background: var(--card);
+  border: 1px solid var(--rule);
+  border-radius: var(--r-lg);
+  box-shadow: var(--lift-1);
+  padding: 18px 20px 16px;
+}
+
+.essay h3 {
+  margin: 0;
+  font-family: var(--font-num);
+  font-size: 23px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--ink);
+}
+
+.essay-lead {
+  margin: 2px 0 0;
+  color: var(--ink-faint);
+  font-size: 14px;
+  font-style: italic;
+}
+
+.essay h4 {
+  margin: 17px 0 5px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.essay p {
+  margin: 0;
+  font-size: 14.5px;
+  line-height: 1.65;
+  color: var(--ink);
+}
+
+.essay-nav {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--rule);
+}
+
+/* ---------------------------------------------------------- strategy list */
+.panel-strategies {
+  padding-bottom: 14px;
+}
+
+.lesson-group + .lesson-group {
+  margin-top: 12px;
+}
+
+.lesson-group-name {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  padding: 0 2px 5px;
+  border-bottom: 1px solid var(--rule);
+  margin-bottom: 6px;
+}
+
+.lesson {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+  padding: 7px 9px;
+  border: 1px solid transparent;
+  border-radius: var(--r-sm);
+  background: none;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+
+.lesson + .lesson {
+  margin-top: 2px;
+}
+
+.lesson:hover {
+  background: rgba(255, 255, 255, 0.7);
+  border-color: var(--rule);
+}
+
+.lesson.active {
+  background: var(--accent-soft);
+  border-color: #b6cdec;
+}
+
+.lesson .l-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.lesson .l-name {
+  display: block;
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+.lesson.active .l-name {
+  color: var(--accent);
+}
+
+.lesson .l-blurb {
+  display: block;
+  font-size: 11.5px;
+  color: var(--ink-faint);
+  line-height: 1.35;
+  margin-top: 1px;
+}
+
+.lesson .l-tier {
+  flex: 0 0 auto;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: 999px;
+  border: 1px solid var(--rule);
+  color: var(--ink-faint);
+  background: #fff;
+}
+
+.lesson .l-tier.t-3 {
+  color: #8a5a1c;
+  border-color: #e0cba4;
+  background: #fdf5e6;
+}
+
+.lesson .l-tier.t-4 {
+  color: var(--no);
+  border-color: #e8c0b9;
+  background: var(--no-soft);
 }
 
 /* ----------------------------------------------------------------- responsive */
@@ -1577,6 +1979,17 @@ kbd {
 
   .pad-hint {
     margin-top: 7px;
+    min-height: 0;
+  }
+
+  /* Choosing what to study comes before studying it: with one column the list
+     has to sit above the board, not a screen and a half below it. */
+  .training-area .side {
+    order: -1;
+    max-width: 640px;
+  }
+
+  .walk-body {
     min-height: 0;
   }
 }
