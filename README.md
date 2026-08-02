@@ -257,6 +257,24 @@ and statistics are stored locally, and clearing your browser data removes them.
 Games in progress are saved automatically, so you can close the tab and pick up where you
 left off.
 
+## Offline
+
+Open the game once and it stays on your device. After that it plays with no network at all
+— on a plane, in a tunnel, with the wifi off. Nothing about the game changes; a small
+"Offline" chip appears in the corner so you know it noticed, and that is all.
+
+Visiting [lhstart.com](https://lhstart.com) is enough on its own. The shelf saves the whole
+game as soon as it loads, without your opening it, because at 369 kB it is smaller than its
+own cover picture. The tile says **Ready offline** once that has happened.
+
+On a phone you can add it to the home screen and it runs as its own app, with its own icon
+and no browser around it. Your statistics live in the browser's storage, and iOS has
+historically kept a home screen app's storage separate from Safari's — so if you install it
+and your streak looks reset, that is why, and the two go on keeping separate scores.
+
+Updates arrive quietly. A new version downloads in the background and takes over the next
+time you launch the game, so a puzzle in progress is never disturbed.
+
 ## Keys
 
 Everything is reachable with the mouse; these just make it faster.
@@ -295,8 +313,15 @@ src/
     storage.js     saved games, statistics and settings
   components/      Board, TrainingBoard, SidePanel, HintBar, StartScreen, Preview,
                    Training, Dialogs
+public/            manifest and icons, copied to the build as-is
 test/              checks for the solver, generator, rules, hints and training
 ```
+
+`vite.config.js` carries a small plugin that writes `dist/offline.json` — the list of files
+the build produced and a hash of their contents. The portal's service worker reads it to
+know what to keep on the device and when a redeploy has replaced it; the portal cannot work
+that out for itself, because the filenames are fingerprinted here at build time. The
+offline contract is written up in the [lhstart README](https://github.com/Guarrdon/lhstart).
 
 ```bash
 npm test

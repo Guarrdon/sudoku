@@ -45,19 +45,49 @@ if grep -qE '(src|href)="/(assets|src)/' dist/index.html; then
        set base: './' in vite.config.js and rebuild."
 fi
 
+# Games that play offline publish this; the portal's service worker reads it to
+# know what to keep. Absence is fine — it just means the game needs the network.
+if [ -f dist/offline.json ]; then
+  echo "    offline build $(python3 -c "import json; print(json.load(open('dist/offline.json'))['build'])")"
+fi
+
 echo "==> uploading to s3://$bucket/$prefix"
 
-# Fingerprinted files can be cached forever. The entry HTML cannot, or a deploy
-# never reaches anyone.
+# Three passes, because three kinds of file want three answers to "how long is
+# this good for".
+#
+# 1. Fingerprinted assets. The name changes when the bytes do, so forever.
+# 2. Hashless files the browser must re-check every time: the entry HTML, and
+#    offline.json, which is the file that says which build is current. A stale
+#    copy of that one pins an offline player to an old build no matter how many
+#    times they reload, so it must never be cached hard.
+# 3. Icons and the manifest. Named by hand and rarely touched, but "rarely" is
+#    not "never" and a year is a long time to be stuck with the wrong icon.
 aws s3 sync dist "s3://$bucket/$prefix" \
   --delete \
   --exclude "*.html" \
+  --exclude "offline.json" \
+  --exclude "*.webmanifest" \
+  --exclude "icons/*" \
   --cache-control "public, max-age=31536000, immutable"
 
 aws s3 sync dist "s3://$bucket/$prefix" \
   --delete \
-  --exclude "*" --include "*.html" \
+  --exclude "*" --include "*.html" --include "offline.json" \
   --cache-control "public, max-age=0, must-revalidate"
+
+aws s3 sync dist "s3://$bucket/$prefix" \
+  --delete \
+  --exclude "*" --include "icons/*" \
+  --cache-control "public, max-age=86400"
+
+# Uploaded on its own for the content type: the AWS CLI does not know
+# .webmanifest, and would hand it over as application/octet-stream.
+if [ -f dist/manifest.webmanifest ]; then
+  aws s3 cp dist/manifest.webmanifest "s3://$bucket/${prefix}manifest.webmanifest" \
+    --cache-control "public, max-age=86400" \
+    --content-type "application/manifest+json"
+fi
 
 echo "==> invalidating CloudFront"
 inv=$(aws cloudfront create-invalidation \
